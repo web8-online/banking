@@ -1,1 +1,818 @@
+/* =============================================================
+   MERIDIAN — components.css
+   Shared design system: loaded on EVERY page (marketing, auth,
+   and the logged-in app). Contains the design tokens, CSS reset,
+   base typography, layout utilities, accessibility helpers,
+   buttons/form fields, and the small reusable UI atoms (status
+   pills, tags, amounts, toasts, skeleton loaders, empty states)
+   that show up in more than one of style.css / auth.css /
+   dashboard.css.
 
+   Load this file FIRST on every page, before the page-specific
+   stylesheet, e.g.:
+     <link rel="stylesheet" href="assets/css/components.css">
+     <link rel="stylesheet" href="assets/css/style.css">
+   ============================================================= */
+
+/* -------------------------------------------------------------
+   1. Font imports & reset
+   ------------------------------------------------------------- */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+/* -------------------------------------------------------------
+   2. Design tokens
+   ------------------------------------------------------------- */
+:root {
+  /* Color: ink / ivory / brass system */
+  --ink: #0a1628;
+  --ink-2: #0f2138;
+  --ink-3: #16304e;
+  --ivory: #f6f5f0;
+  --paper: #ffffff;
+  --brass: #b58a44;
+  --brass-light: #d8b876;
+  --brass-dark: #8f6b32;
+  --slate: #5b6b7c;
+  --slate-dark: #1b2836;
+  --line: #e3e0d8;
+  --line-dark: rgba(246, 245, 240, 0.12);
+  --green: #1f8a5f;
+  --green-bg: rgba(31, 138, 95, 0.1);
+  --red: #c0453b;
+  --red-bg: rgba(192, 69, 59, 0.1);
+  --amber: #b3771d;
+  --amber-bg: rgba(179, 119, 29, 0.1);
+  --shadow-soft: 0 20px 60px -20px rgba(10, 22, 40, 0.25);
+  --shadow-card: 0 1px 2px rgba(10, 22, 40, 0.06), 0 12px 32px -16px rgba(10, 22, 40, 0.12);
+
+  /* Type */
+  --font-display: 'Space Grotesk', 'Segoe UI', sans-serif;
+  --font-body: 'Inter', 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
+
+  /* Layout */
+  --container-w: 1200px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 24px;
+  --section-pad: 7.5rem;
+  --header-h: 84px;
+  --app-header-h: 76px;
+}
+
+/* -------------------------------------------------------------
+   3. Base typography & elements
+   ------------------------------------------------------------- */
+body {
+  font-family: var(--font-body);
+  color: var(--slate-dark);
+  background: var(--ivory);
+  line-height: 1.6;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  color: var(--ink);
+  line-height: 1.12;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+h1 { font-size: clamp(2.5rem, 4.5vw, 4.1rem); }
+h2 { font-size: clamp(2rem, 3.2vw, 2.85rem); }
+h3 { font-size: 1.35rem; }
+h4 { font-size: 1.1rem; }
+
+p {
+  color: var(--slate);
+}
+
+.lede {
+  font-size: 1.15rem;
+  line-height: 1.65;
+  color: var(--slate);
+  max-width: 46ch;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-feature-settings: 'tnum' 1;
+}
+
+/* -------------------------------------------------------------
+   4. Layout utilities
+   ------------------------------------------------------------- */
+.container {
+  width: 100%;
+  max-width: var(--container-w);
+  margin-inline: auto;
+  padding-inline: 1.75rem;
+}
+
+.container--narrow {
+  max-width: 640px;
+}
+
+.section {
+  padding-block: var(--section-pad);
+  position: relative;
+}
+
+.section--tight {
+  padding-block: 4.5rem;
+}
+
+.section-head {
+  max-width: 640px;
+  margin-bottom: 3.5rem;
+}
+
+.section-head.center {
+  max-width: 640px;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--brass-dark);
+  font-weight: 500;
+  margin-bottom: 1.1rem;
+}
+
+.eyebrow::before {
+  content: '';
+  width: 22px;
+  height: 1px;
+  background: var(--brass);
+  display: inline-block;
+}
+
+.eyebrow--on-dark {
+  color: var(--brass-light);
+}
+
+.section-head p {
+  margin-top: 1rem;
+  font-size: 1.08rem;
+}
+
+.grid {
+  display: grid;
+  gap: 2rem;
+}
+
+.bg-ink {
+  background: var(--ink);
+  color: var(--ivory);
+}
+
+.bg-ink h2,
+.bg-ink h3,
+.bg-ink h4 {
+  color: var(--ivory);
+}
+
+.bg-ink p {
+  color: rgba(246, 245, 240, 0.68);
+}
+
+.divider {
+  height: 1px;
+  width: 100%;
+  background: var(--line);
+  border: 0;
+}
+
+/* -------------------------------------------------------------
+   Shared animations
+   (spin: used by the hero orbit in style.css AND the auth-orbit /
+   submit spinner in auth.css. wizard-fade-in: used by the
+   registration wizard in auth.css AND the profile panels in
+   dashboard.css. Defined once here so both pages get them.)
+   ------------------------------------------------------------- */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes wizard-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* -------------------------------------------------------------
+   5. Accessibility helpers
+   ------------------------------------------------------------- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  top: -48px;
+  left: 1rem;
+  background: var(--brass);
+  color: var(--ink);
+  font-weight: 600;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius-sm);
+  z-index: 1000;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 1rem;
+}
+
+:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline-offset: 2px;
+}
+
+/* -------------------------------------------------------------
+   6. Buttons & form controls
+   ------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 0.9rem 1.65rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+  white-space: nowrap;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.btn-primary {
+  background: var(--brass);
+  color: var(--ink);
+  box-shadow: 0 10px 24px -10px rgba(181, 138, 68, 0.55);
+}
+
+.btn-primary:hover {
+  background: var(--brass-light);
+  box-shadow: 0 14px 30px -10px rgba(181, 138, 68, 0.65);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink);
+  border-color: rgba(10, 22, 40, 0.16);
+}
+
+.btn-ghost:hover {
+  border-color: var(--ink);
+  background: rgba(10, 22, 40, 0.04);
+}
+
+.btn-ghost--on-dark {
+  color: var(--ivory);
+  border-color: var(--line-dark);
+}
+
+.btn-ghost--on-dark:hover {
+  border-color: var(--ivory);
+  background: rgba(246, 245, 240, 0.06);
+}
+
+.btn-danger {
+  background: var(--red);
+  color: var(--ivory);
+  box-shadow: 0 10px 24px -10px rgba(192, 69, 59, 0.45);
+}
+
+.btn-danger:hover {
+  background: #a63a31;
+  box-shadow: 0 14px 30px -10px rgba(192, 69, 59, 0.55);
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-sm {
+  padding: 0.6rem 1.1rem;
+  font-size: 0.85rem;
+}
+
+.link-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--ink);
+  border-bottom: 1px solid transparent;
+  transition: gap 0.2s ease, border-color 0.2s ease;
+}
+
+.link-arrow svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.2s ease;
+}
+
+.link-arrow:hover {
+  gap: 0.65rem;
+  border-color: currentColor;
+}
+
+.link-arrow-sm {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--brass-dark);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+.link-arrow-sm:hover {
+  border-color: currentColor;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-bottom: 1.25rem;
+}
+
+.field label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.field-label-static {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink);
+  display: block;
+  margin-bottom: 0.6rem;
+}
+
+.field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.field input,
+.field select,
+.field textarea {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  border-radius: var(--radius-sm);
+  padding: 0.85rem 1rem;
+  font-size: 0.95rem;
+  color: var(--slate-dark);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  width: 100%;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--brass);
+  box-shadow: 0 0 0 3px rgba(181, 138, 68, 0.18);
+}
+
+.field input:disabled,
+.field select:disabled {
+  background: var(--ivory);
+  color: var(--slate);
+  cursor: not-allowed;
+}
+
+.field textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.field-error {
+  font-size: 0.8rem;
+  color: var(--red);
+  display: none;
+}
+
+.field-hint {
+  font-size: 0.8rem;
+  color: var(--slate);
+}
+
+.field.has-error input,
+.field.has-error select,
+.field.has-error textarea {
+  border-color: var(--red);
+}
+
+.field.has-error .field-error {
+  display: block;
+}
+
+.checkbox-field {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+  color: var(--slate);
+}
+
+.checkbox-field input {
+  margin-top: 0.2rem;
+  accent-color: var(--brass);
+}
+
+/* -------------------------------------------------------------
+   21. Scroll-reveal animation states
+   ------------------------------------------------------------- */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+[data-reveal].is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+[data-reveal-stagger] > * {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+[data-reveal-stagger].is-visible > * {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+[data-reveal-stagger].is-visible > *:nth-child(1) { transition-delay: 0.05s; }
+[data-reveal-stagger].is-visible > *:nth-child(2) { transition-delay: 0.12s; }
+[data-reveal-stagger].is-visible > *:nth-child(3) { transition-delay: 0.19s; }
+[data-reveal-stagger].is-visible > *:nth-child(4) { transition-delay: 0.26s; }
+[data-reveal-stagger].is-visible > *:nth-child(5) { transition-delay: 0.33s; }
+[data-reveal-stagger].is-visible > *:nth-child(6) { transition-delay: 0.4s; }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal],
+  [data-reveal-stagger] > * {
+    opacity: 1;
+    transform: none;
+  }
+  .ticker-track,
+  .balance-card,
+  .float-chip,
+  .hero-orbit .ring--spin,
+  .hero-orbit .ring--spin-rev,
+  .shield-graphic .ring--pulse {
+    animation: none !important;
+  }
+}
+
+/* -------------------------------------------------------------
+   29. Status pills, tags & amount styling
+   ------------------------------------------------------------- */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.32rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-pill svg {
+  width: 12px;
+  height: 12px;
+}
+
+.status-pill--verified {
+  background: var(--green-bg);
+  color: var(--green);
+}
+
+.status-pill--pending {
+  background: var(--amber-bg);
+  color: var(--amber);
+}
+
+.status-pill--danger {
+  background: var(--red-bg);
+  color: var(--red);
+}
+
+.status-pill--neutral {
+  background: rgba(91, 107, 124, 0.12);
+  color: var(--slate);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  background: rgba(10, 22, 40, 0.06);
+  color: var(--slate-dark);
+  white-space: nowrap;
+}
+
+.amt {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.amt.pos {
+  color: var(--green);
+}
+
+/* =============================================================
+   37. TOAST NOTIFICATIONS
+   ============================================================= */
+.toast-stack {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 1300;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 340px;
+  max-width: calc(100vw - 2rem);
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  background: var(--ink);
+  color: var(--ivory);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.1rem;
+  box-shadow: var(--shadow-soft);
+  opacity: 0;
+  transform: translateX(24px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  pointer-events: none;
+}
+
+.toast.is-visible {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.toast-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.toast-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.toast--success .toast-icon {
+  background: var(--green-bg);
+  color: var(--green);
+}
+
+.toast--error .toast-icon {
+  background: var(--red-bg);
+  color: var(--red);
+}
+
+.toast--info .toast-icon {
+  background: rgba(181, 138, 68, 0.16);
+  color: var(--brass-light);
+}
+
+.toast-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast-body strong {
+  display: block;
+  font-size: 0.87rem;
+  margin-bottom: 0.15rem;
+}
+
+.toast-body span {
+  font-size: 0.8rem;
+  color: rgba(246, 245, 240, 0.65);
+}
+
+.toast-close {
+  background: transparent;
+  border: none;
+  color: rgba(246, 245, 240, 0.55);
+  cursor: pointer;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toast-close svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* =============================================================
+   38. SKELETON LOADING STATES
+   ============================================================= */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--line);
+  border-radius: var(--radius-sm);
+  color: transparent !important;
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  animation: skeleton-sweep 1.6s ease-in-out infinite;
+}
+
+@keyframes skeleton-sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
+.skeleton-text {
+  height: 0.9em;
+  border-radius: 4px;
+  margin-bottom: 0.5em;
+}
+
+.skeleton-text:last-child {
+  margin-bottom: 0;
+  width: 70%;
+}
+
+.skeleton-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+}
+
+/* =============================================================
+   39. EMPTY STATES
+   ============================================================= */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 3.5rem 1.5rem;
+  color: var(--slate);
+}
+
+.empty-state-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--ivory);
+  color: var(--brass-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+}
+
+.empty-state-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.empty-state h3 {
+  margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+  font-size: 0.9rem;
+  max-width: 36ch;
+  margin-bottom: 1.5rem;
+}
+
+
+/* -------------------------------------------------------------
+   Responsive — toast stack (shared component)
+   ------------------------------------------------------------- */
+@media (max-width: 720px) {
+  .toast-stack {
+    top: auto;
+    bottom: 1rem;
+    right: 1rem;
+    left: 1rem;
+    width: auto;
+  }
+}
