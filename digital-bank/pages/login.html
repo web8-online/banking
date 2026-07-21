@@ -116,7 +116,7 @@
         <p>New to Meridian? <a href="register.html">Open an account</a></p>
       </div>
 
-      <!-- Inline alert — hidden by default, shown on auth error via JS -->
+      <!-- Inline alert — hidden by default, shown on auth error by login.js -->
       <div class="auth-form-alert" role="alert" hidden>
         <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.5"/><path d="M10 6.5v4M10 13.2v.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
         <span class="auth-form-alert-text">We couldn't find an account with those details. Check your email and password, or reset your password below.</span>
@@ -188,5 +188,6 @@
 </main>
 
 <script src="../assets/js/main.js"></script>
+<script type="module" src="login.js"></script>
 </body>
 </html>
