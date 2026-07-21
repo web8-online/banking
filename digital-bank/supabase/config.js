@@ -24,8 +24,8 @@
 
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL';
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const SUPABASE_URL = 'https://yuvhvmlgoawjoikmpbgp.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_Lz03FsI-z83uf7gqpcJhsQ_1oim5oED';
 
 if (SUPABASE_URL.includes('YOUR_SUPABASE_PROJECT_URL')) {
   console.warn(
