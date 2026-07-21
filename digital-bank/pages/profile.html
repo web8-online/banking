@@ -1,1 +1,470 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your profile — Meridian</title>
+<meta name="description" content="Manage your Meridian account details, security, and preferences.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="app-body">
+
+<a class="skip-link" href="#main-content">Skip to main content</a>
+
+<!-- =========================================================
+     LOGGED-IN APP HEADER
+     ========================================================= -->
+<header class="app-header">
+  <div class="container app-header-row">
+    <a href="dashboard.html" class="brand" aria-label="Meridian home">
+      <svg class="brand-mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <circle cx="20" cy="20" r="19" stroke="#B58A44" stroke-width="1.3"/>
+        <ellipse cx="20" cy="20" rx="19" ry="7.5" stroke="#B58A44" stroke-width="1"/>
+        <line x1="1" y1="20" x2="39" y2="20" stroke="#B58A44" stroke-width="1"/>
+        <line x1="20" y1="1" x2="20" y2="39" stroke="#0A1628" stroke-width="1.3"/>
+      </svg>
+      Meridian
+    </a>
+
+    <nav class="app-nav" aria-label="Primary">
+      <a href="dashboard.html">Overview</a>
+      <a href="transfer.html">Transfers</a>
+      <a href="cards.html">Cards</a>
+      <a href="#">Investments</a>
+    </nav>
+
+    <div class="app-header-actions">
+      <button class="app-icon-btn" aria-label="Search">
+        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.5"/><path d="m17 17-3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+      <button class="app-icon-btn" aria-label="Notifications">
+        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 8a5 5 0 0 1 10 0c0 4 1.5 5 1.5 5h-13S5 12 5 8Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8.2 15.5a1.8 1.8 0 0 0 3.6 0" stroke="currentColor" stroke-width="1.4"/></svg>
+        <span class="app-icon-btn-badge">2</span>
+      </button>
+
+      <div class="app-user-menu">
+        <button class="app-user-trigger" aria-haspopup="true" aria-expanded="false">
+          <span class="avatar-initial avatar-initial--sm">A</span>
+          <span class="app-user-name">Amara Okafor</span>
+          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="app-user-dropdown" role="menu">
+          <a href="profile.html" role="menuitem" class="is-current">Profile &amp; settings</a>
+          <a href="#" role="menuitem">Statements</a>
+          <a href="#" role="menuitem">Help centre</a>
+          <div class="app-user-dropdown-divider"></div>
+          <a href="../index.html" role="menuitem">Log out</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main id="main-content" class="profile-main">
+  <div class="container">
+
+    <!-- =========================================================
+         PROFILE HEADER / IDENTITY BANNER
+         ========================================================= -->
+    <section class="profile-banner">
+      <div class="profile-banner-identity">
+        <div class="profile-avatar-wrap">
+          <span class="avatar-initial avatar-initial--lg">A</span>
+          <button type="button" class="profile-avatar-edit" aria-label="Change profile photo">
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 14.5 4.4 12l7.4-7.4a1.7 1.7 0 0 1 2.4 2.4L6.8 14.4 4 14.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+        <div>
+          <h1>Amara Okafor</h1>
+          <p class="profile-banner-meta">Personal account · Member since March 2024</p>
+        </div>
+      </div>
+
+      <div class="profile-banner-status">
+        <span class="status-pill status-pill--verified">
+          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5 6.5 12 13 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Identity verified
+        </span>
+        <span class="status-pill status-pill--neutral">Email confirmed</span>
+      </div>
+    </section>
+
+    <div class="profile-layout">
+
+      <!-- =========================================================
+           SIDEBAR NAVIGATION
+           ========================================================= -->
+      <nav class="profile-nav" aria-label="Profile sections">
+        <a href="#overview" class="profile-nav-link is-active" data-tab="overview">
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="2.5" y="2.5" width="6.5" height="6.5" rx="1.4" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="2.5" width="6.5" height="6.5" rx="1.4" stroke="currentColor" stroke-width="1.4"/><rect x="2.5" y="11" width="6.5" height="6.5" rx="1.4" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="11" width="6.5" height="6.5" rx="1.4" stroke="currentColor" stroke-width="1.4"/></svg>
+          Overview
+        </a>
+        <a href="#personal" class="profile-nav-link" data-tab="personal">
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="6.5" r="3.3" stroke="currentColor" stroke-width="1.4"/><path d="M3.5 17c0-3.6 3-6 6.5-6s6.5 2.4 6.5 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          Personal info
+        </a>
+        <a href="#security" class="profile-nav-link" data-tab="security">
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2.5 16 5v4.5c0 4-2.7 6.9-6 8-3.3-1.1-6-4-6-8V5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          Security
+        </a>
+        <a href="#notifications" class="profile-nav-link" data-tab="notifications">
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 8a5 5 0 0 1 10 0c0 4 1.5 5 1.5 5h-13S5 12 5 8Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          Notifications
+        </a>
+        <a href="#danger" class="profile-nav-link profile-nav-link--danger" data-tab="danger">
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 3 17.5 16h-15L10 3Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M10 8.3v3M10 13.6v.1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          Danger zone
+        </a>
+      </nav>
+
+      <div class="profile-content">
+
+        <!-- =========================================================
+             OVERVIEW
+             ========================================================= -->
+        <section class="profile-panel is-active" id="overview" data-panel="overview">
+          <div class="profile-panel-head">
+            <h2>Overview</h2>
+            <p>A quick summary of your account and where it stands.</p>
+          </div>
+
+          <div class="grid profile-summary-grid">
+            <div class="profile-summary-card">
+              <span class="profile-summary-label">Account status</span>
+              <span class="profile-summary-value">Active</span>
+            </div>
+            <div class="profile-summary-card">
+              <span class="profile-summary-label">Linked accounts</span>
+              <span class="profile-summary-value">3 currencies</span>
+            </div>
+            <div class="profile-summary-card">
+              <span class="profile-summary-label">Active cards</span>
+              <span class="profile-summary-value">2 cards</span>
+            </div>
+            <div class="profile-summary-card">
+              <span class="profile-summary-label">Active sessions</span>
+              <span class="profile-summary-value">1 device</span>
+            </div>
+          </div>
+
+          <div class="profile-card">
+            <div class="profile-card-head">
+              <h3>Recent account activity</h3>
+              <a href="#security" class="link-arrow-sm">View all</a>
+            </div>
+            <ul class="activity-list">
+              <li>
+                <span class="activity-dot"></span>
+                <div>
+                  <strong>Logged in</strong>
+                  <span>Chrome on macOS · Lagos, Nigeria</span>
+                </div>
+                <time>Today, 9:12 AM</time>
+              </li>
+              <li>
+                <span class="activity-dot"></span>
+                <div>
+                  <strong>Password changed</strong>
+                  <span>Confirmed by email</span>
+                </div>
+                <time>Jul 14, 2026</time>
+              </li>
+              <li>
+                <span class="activity-dot"></span>
+                <div>
+                  <strong>New device confirmed</strong>
+                  <span>Safari on iPhone</span>
+                </div>
+                <time>Jun 29, 2026</time>
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- =========================================================
+             PERSONAL INFO — maps to public.user_profiles
+             ========================================================= -->
+        <section class="profile-panel" id="personal" data-panel="personal">
+          <div class="profile-panel-head">
+            <h2>Personal info</h2>
+            <p>This is the information Meridian uses to verify your identity and keep your account secure.</p>
+          </div>
+
+          <form id="personal-info-form" class="profile-form" novalidate>
+            <div class="form-row-2">
+              <div class="field">
+                <label for="profile-first-name">First name</label>
+                <input type="text" id="profile-first-name" name="first_name" autocomplete="given-name" value="Amara">
+                <span class="field-error" role="alert"></span>
+              </div>
+              <div class="field">
+                <label for="profile-last-name">Last name</label>
+                <input type="text" id="profile-last-name" name="last_name" autocomplete="family-name" value="Okafor">
+                <span class="field-error" role="alert"></span>
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="field">
+                <label for="profile-email">Email address</label>
+                <input type="email" id="profile-email" name="email" autocomplete="email" value="amara.okafor@example.com">
+                <span class="field-hint">Changing this will require re-confirming your email.</span>
+              </div>
+              <div class="field">
+                <label for="profile-phone">Phone number</label>
+                <input type="tel" id="profile-phone" name="phone" autocomplete="tel" value="+234 801 234 5678">
+                <span class="field-error" role="alert"></span>
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="field">
+                <label for="profile-dob">Date of birth</label>
+                <input type="date" id="profile-dob" name="date_of_birth" value="1994-03-11">
+                <span class="field-error" role="alert"></span>
+              </div>
+              <div class="field">
+                <label for="profile-gender">Gender</label>
+                <select id="profile-gender" name="gender">
+                  <option value="">Prefer not to say</option>
+                  <option value="female" selected>Female</option>
+                  <option value="male">Male</option>
+                  <option value="nonbinary">Non-binary</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="field">
+                <label for="profile-nationality">Nationality</label>
+                <input type="text" id="profile-nationality" name="nationality" value="Nigerian">
+              </div>
+              <div class="field">
+                <label for="profile-occupation">Occupation</label>
+                <input type="text" id="profile-occupation" name="occupation" value="Freelance designer">
+              </div>
+            </div>
+
+            <h3 class="profile-form-subhead">Address</h3>
+
+            <div class="field">
+              <label for="profile-address">Street address</label>
+              <input type="text" id="profile-address" name="address" value="14 Adeola Street">
+            </div>
+
+            <div class="form-row-3">
+              <div class="field">
+                <label for="profile-city">City</label>
+                <input type="text" id="profile-city" name="city" value="Lagos">
+              </div>
+              <div class="field">
+                <label for="profile-state">State / region</label>
+                <input type="text" id="profile-state" name="state" value="Lagos">
+              </div>
+              <div class="field">
+                <label for="profile-postal">Postal code</label>
+                <input type="text" id="profile-postal" name="postal_code" value="101233">
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="profile-country">Country</label>
+              <select id="profile-country" name="country">
+                <option value="NG" selected>Nigeria</option>
+                <option value="US">United States</option>
+                <option value="GB">United Kingdom</option>
+                <option value="DE">Germany</option>
+                <option value="FR">France</option>
+                <option value="SG">Singapore</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+
+            <div class="profile-form-actions">
+              <button type="button" class="btn btn-ghost">Cancel</button>
+              <button type="submit" class="btn btn-primary">Save changes</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- =========================================================
+             SECURITY
+             ========================================================= -->
+        <section class="profile-panel" id="security" data-panel="security">
+          <div class="profile-panel-head">
+            <h2>Security</h2>
+            <p>Manage how you sign in and keep your account protected.</p>
+          </div>
+
+          <div class="profile-card">
+            <div class="profile-card-head">
+              <h3>Password</h3>
+            </div>
+            <p class="profile-card-desc">Last changed Jul 14, 2026. Use a password you don't use anywhere else.</p>
+            <form id="password-change-form" class="profile-form" novalidate>
+              <div class="field">
+                <label for="current-password">Current password</label>
+                <div class="password-field-wrap">
+                  <input type="password" id="current-password" name="current_password" autocomplete="current-password">
+                  <button type="button" class="password-toggle" aria-pressed="false" aria-label="Show password">
+                    <svg class="icon-show" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M1.5 10S4.5 4 10 4s8.5 6 8.5 6-3 6-8.5 6-8.5-6-8.5-6Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><circle cx="10" cy="10" r="2.4" stroke="currentColor" stroke-width="1.4"/></svg>
+                    <svg class="icon-hide" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M2.5 2.5l15 15M8.3 8.4a2.4 2.4 0 0 0 3.3 3.3M6.2 6.1C3.6 7.4 1.5 10 1.5 10s3 6 8.5 6c1.5 0 2.8-.4 3.9-1M13.9 5.2C12.7 4.5 11.4 4 10 4c-.4 0-.7 0-1.1.1M15.6 6.6c1.5 1.3 2.9 3.4 2.9 3.4s-.6 1.2-1.7 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="form-row-2">
+                <div class="field">
+                  <label for="new-password">New password</label>
+                  <input type="password" id="new-password" name="new_password" autocomplete="new-password" minlength="10">
+                </div>
+                <div class="field">
+                  <label for="new-password-confirm">Confirm new password</label>
+                  <input type="password" id="new-password-confirm" name="new_password_confirm" autocomplete="new-password">
+                </div>
+              </div>
+              <div class="profile-form-actions">
+                <button type="submit" class="btn btn-primary">Update password</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="profile-card">
+            <div class="profile-card-head">
+              <h3>Two-factor verification</h3>
+              <span class="status-pill status-pill--verified">Enabled — Email code</span>
+            </div>
+            <p class="profile-card-desc">Every login from a new device requires a one-time code, in addition to your password.</p>
+            <div class="auth-methods">
+              <button type="button" class="auth-method-btn is-selected" data-method="email-code">
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="3" y="4.5" width="14" height="11" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M4 6l6 4.5L16 6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                Email code
+              </button>
+              <button type="button" class="auth-method-btn" data-method="authenticator">
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="5" y="2.5" width="10" height="15" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M8.5 15h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                Authenticator app
+              </button>
+            </div>
+          </div>
+
+          <div class="profile-card">
+            <div class="profile-card-head">
+              <h3>Active sessions</h3>
+            </div>
+            <p class="profile-card-desc">These are the devices currently logged into your account.</p>
+            <ul class="session-list">
+              <li class="session-item">
+                <span class="session-icon">
+                  <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="2.5" y="4" width="15" height="10" rx="1.6" stroke="currentColor" stroke-width="1.4"/><path d="M7 17h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                </span>
+                <div>
+                  <strong>Chrome on macOS · This device</strong>
+                  <span>Lagos, Nigeria · Active now</span>
+                </div>
+                <span class="status-pill status-pill--neutral">Current</span>
+              </li>
+              <li class="session-item">
+                <span class="session-icon">
+                  <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="5.5" y="2.5" width="9" height="15" rx="1.8" stroke="currentColor" stroke-width="1.4"/></svg>
+                </span>
+                <div>
+                  <strong>Safari on iPhone</strong>
+                  <span>Lagos, Nigeria · Last active Jun 29, 2026</span>
+                </div>
+                <button type="button" class="wizard-edit-link">Log out</button>
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- =========================================================
+             NOTIFICATIONS
+             ========================================================= -->
+        <section class="profile-panel" id="notifications" data-panel="notifications">
+          <div class="profile-panel-head">
+            <h2>Notifications</h2>
+            <p>Choose what Meridian keeps you updated on, and how.</p>
+          </div>
+
+          <div class="profile-card">
+            <ul class="preference-list">
+              <li class="preference-row">
+                <div>
+                  <strong>Transaction alerts</strong>
+                  <span>Get notified for every payment, transfer, or card charge.</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" checked>
+                  <span class="switch-track"></span>
+                </label>
+              </li>
+              <li class="preference-row">
+                <div>
+                  <strong>Security alerts</strong>
+                  <span>New device logins, password changes, and suspicious activity.</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" checked disabled>
+                  <span class="switch-track"></span>
+                </label>
+              </li>
+              <li class="preference-row">
+                <div>
+                  <strong>Exchange rate alerts</strong>
+                  <span>When a currency you hold moves more than 1% in a day.</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox">
+                  <span class="switch-track"></span>
+                </label>
+              </li>
+              <li class="preference-row">
+                <div>
+                  <strong>Product news</strong>
+                  <span>New features and market updates, at most twice a month.</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox">
+                  <span class="switch-track"></span>
+                </label>
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- =========================================================
+             DANGER ZONE
+             ========================================================= -->
+        <section class="profile-panel" id="danger" data-panel="danger">
+          <div class="profile-panel-head">
+            <h2>Danger zone</h2>
+            <p>These actions are significant and, in some cases, permanent.</p>
+          </div>
+
+          <div class="profile-card profile-card--danger">
+            <div class="profile-card-head">
+              <h3>Download your data</h3>
+            </div>
+            <p class="profile-card-desc">Request a copy of your personal data and account history, in line with our privacy policy.</p>
+            <button type="button" class="btn btn-ghost">Request data export</button>
+          </div>
+
+          <div class="profile-card profile-card--danger">
+            <div class="profile-card-head">
+              <h3>Close your account</h3>
+            </div>
+            <p class="profile-card-desc">Your account must have a zero balance in every currency before it can be closed. This cannot be undone.</p>
+            <button type="button" class="btn btn-danger">Close my account</button>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="../assets/js/main.js"></script>
+</body>
+</html>
