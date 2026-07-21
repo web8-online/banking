@@ -1,18 +1,20 @@
 /* =============================================================
-   MERIDIAN — auth.css
-   login.html & register.html only. The split auth shell (brand
-   pane + form pane), password field/strength meter/alerts, and
-   the multi-step registration wizard (account type, steps,
-   review) all live here.
+   MERIDIAN — International Digital Banking
+   Stylesheet: assets/css/auth.css
+   SCOPE: login.html and register.html ONLY.
+   Load AFTER style.css and components.css — this file only adds
+   the auth-specific layout and never redefines tokens/buttons.
 
-   Requires components.css to be loaded first:
-     <link rel="stylesheet" href="assets/css/components.css">
-     <link rel="stylesheet" href="assets/css/auth.css">
+   Contents:
+     1.  Auth shell (login / register split layout)
+     2.  Auth form elements (password field, strength meter, alerts)
+     3.  Registration wizard (account type, steps, review)
+     4.  Responsive
    ============================================================= */
 
-/* =============================================================
-   24. AUTH SHELL — login.html / register.html split layout
-   ============================================================= */
+/* -------------------------------------------------------------
+   1. Auth shell — split layout
+   ------------------------------------------------------------- */
 .auth-topbar {
   background: var(--ink);
   color: rgba(246, 245, 240, 0.75);
@@ -360,7 +362,7 @@
 }
 
 /* -------------------------------------------------------------
-   25. Auth form elements — password field, strength meter, alerts
+   2. Auth form elements — password field, strength meter, alerts
    ------------------------------------------------------------- */
 .password-field-wrap {
   position: relative;
@@ -494,7 +496,7 @@
 }
 
 /* -------------------------------------------------------------
-   26. Registration wizard — account type, steps, review
+   3. Registration wizard — account type, steps, review
    ------------------------------------------------------------- */
 .wizard-step-caption {
   font-family: var(--font-mono);
@@ -579,6 +581,11 @@
 .wizard-panel.is-active {
   display: block;
   animation: wizard-fade-in 0.35s ease;
+}
+
+@keyframes wizard-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .wizard-actions {
@@ -715,9 +722,8 @@
   text-decoration: underline;
 }
 
-
 /* -------------------------------------------------------------
-   Responsive — auth shell & wizard
+   4. Responsive
    ------------------------------------------------------------- */
 @media (max-width: 1080px) {
   .auth-main {
@@ -731,11 +737,14 @@
   }
 }
 
+@media (max-width: 860px) {
+  .wizard-step-name {
+    display: none;
+  }
+}
+
 @media (max-width: 720px) {
   .auth-form-pane {
     padding: 2.5rem 1.25rem;
-  }
-  .account-type-grid {
-    grid-template-columns: 1fr;
   }
 }
