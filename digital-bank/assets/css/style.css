@@ -39,10 +39,10 @@
      34. Transfer wizard — recipients, amount, review, success
      35. Profile & settings — banner, sidebar, cards, forms
      36. Tables, linked accounts, sessions, switches
-     37. Toast notifications (new feature)
-     38. Skeleton loading states (new feature)
-     39. Empty states (new feature)
-     40. Print styles (new feature)
+     37. Toast notifications
+     38. Skeleton loading states
+     39. Empty states
+     40. Print styles
      41. App-shell responsive breakpoints
    ============================================================= */
 
@@ -555,6 +555,7 @@ a:focus-visible {
   width: 14px;
   height: 14px;
   color: var(--brass-light);
+  flex-shrink: 0;
 }
 
 .topbar-right {
@@ -606,6 +607,7 @@ a:focus-visible {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 1.5rem;
   height: var(--header-h);
 }
 
@@ -618,6 +620,7 @@ a:focus-visible {
   font-size: 1.3rem;
   color: var(--ink);
   letter-spacing: -0.01em;
+  flex-shrink: 0;
 }
 
 .brand-mark {
@@ -630,6 +633,7 @@ a:focus-visible {
   display: flex;
   align-items: center;
   gap: 2.1rem;
+  flex-wrap: nowrap;
 }
 
 .nav-links a {
@@ -638,6 +642,7 @@ a:focus-visible {
   color: var(--slate-dark);
   position: relative;
   padding-block: 0.4rem;
+  white-space: nowrap;
   transition: color 0.2s ease;
 }
 
@@ -664,6 +669,7 @@ a:focus-visible {
   display: flex;
   align-items: center;
   gap: 0.9rem;
+  flex-shrink: 0;
 }
 
 .nav-actions .btn-ghost {
@@ -682,6 +688,7 @@ a:focus-visible {
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .nav-toggle span {
@@ -759,6 +766,10 @@ a:focus-visible {
   font-weight: 600;
   padding-block: 0.75rem;
   border-bottom: 1px solid var(--line-dark);
+}
+
+.mobile-drawer-links a:last-child {
+  border-bottom: none;
 }
 
 .mobile-drawer-actions {
@@ -1258,6 +1269,10 @@ body.drawer-open {
   padding-top: 0;
 }
 
+.feature-item:last-child {
+  border-bottom: none;
+}
+
 .feature-num {
   font-family: var(--font-mono);
   font-size: 0.85rem;
@@ -1334,11 +1349,13 @@ body.drawer-open {
   align-items: center;
   justify-content: center;
   margin-right: 0.6rem;
+  flex-shrink: 0;
 }
 
 .phone-mock-row-left {
   display: flex;
   align-items: center;
+  min-width: 0;
 }
 
 /* -------------------------------------------------------------
@@ -1511,7 +1528,7 @@ body.drawer-open {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .carousel-btn:hover {
@@ -1991,7 +2008,7 @@ body.drawer-open {
    ------------------------------------------------------------- */
 .back-to-top {
   position: fixed;
-  right: 1.75rem;
+  right: 6.75rem; /* clears the chat launcher (60px + spacing) in the bottom-right corner */
   bottom: 1.75rem;
   width: 48px;
   height: 48px;
@@ -2191,9 +2208,15 @@ body.drawer-open {
   position: fixed;
   right: 1.75rem;
   bottom: 1.75rem;
-  z-index: 950;
+  z-index: 1000;
   display: flex;
-  flex-direction: column;
+  /* column-reverse anchors the launcher (first child in the DOM) to the
+     true bottom-right corner. The panel stays 600px tall in the DOM even
+     while "closed" (it's hidden with opacity/visibility, not display:none),
+     so a plain top-down column would push the launcher far above the
+     corner — column-reverse keeps the launcher pinned to the anchor and
+     lets the panel unfold upward from it, which is the correct behaviour. */
+  flex-direction: column-reverse;
   align-items: flex-end;
   gap: 1rem;
   font-family: var(--font-body);
@@ -2819,11 +2842,6 @@ body.drawer-open {
   padding: 0.5rem 1rem 0.85rem;
   background: var(--paper);
   flex-shrink: 0;
-}
-
-/* shift the back-to-top button clear of the chat launcher */
-.back-to-top {
-  right: 6.75rem;
 }
 
 /* ---- Site-wide accessibility states, toggled from the chat menu ---- */
@@ -3610,7 +3628,7 @@ body.app-body {
   align-items: center;
   justify-content: space-between;
   height: var(--app-header-h);
-  gap: 2rem;
+  gap: 1.5rem;
 }
 
 .app-nav {
@@ -3619,6 +3637,7 @@ body.app-body {
   gap: 1.9rem;
   flex: 1;
   justify-content: center;
+  flex-wrap: nowrap;
 }
 
 .app-nav a {
@@ -3627,6 +3646,7 @@ body.app-body {
   color: var(--slate);
   padding-block: 0.4rem;
   position: relative;
+  white-space: nowrap;
   transition: color 0.2s ease;
 }
 
@@ -3707,6 +3727,7 @@ body.app-body {
 .app-user-menu {
   position: relative;
   margin-left: 0.3rem;
+  flex-shrink: 0;
 }
 
 .app-user-trigger {
@@ -3729,12 +3750,14 @@ body.app-body {
   font-size: 0.87rem;
   font-weight: 600;
   color: var(--ink);
+  white-space: nowrap;
 }
 
 .app-user-trigger svg {
   width: 14px;
   height: 14px;
   color: var(--slate);
+  flex-shrink: 0;
 }
 
 .app-user-dropdown {
@@ -5175,10 +5198,7 @@ body.app-body {
 }
 
 /* =============================================================
-   37. TOAST NOTIFICATIONS (new feature)
-   Lightweight, accessible toast stack for confirming actions
-   like "Preferences saved" or "Transfer scheduled". Trigger by
-   toggling .is-visible on a .toast inside #toast-stack from JS.
+   37. TOAST NOTIFICATIONS
    ============================================================= */
 .toast-stack {
   position: fixed;
@@ -5278,9 +5298,7 @@ body.app-body {
 }
 
 /* =============================================================
-   38. SKELETON LOADING STATES (new feature)
-   Apply .is-loading to a card/row container to swap its content
-   for shimmering placeholder blocks while data loads.
+   38. SKELETON LOADING STATES
    ============================================================= */
 .skeleton {
   position: relative;
@@ -5321,9 +5339,7 @@ body.app-body {
 }
 
 /* =============================================================
-   39. EMPTY STATES (new feature)
-   Drop into any list/panel when there's nothing to show yet
-   (no transactions match filters, no saved beneficiaries, etc).
+   39. EMPTY STATES
    ============================================================= */
 .empty-state {
   display: flex;
@@ -5362,9 +5378,7 @@ body.app-body {
 }
 
 /* =============================================================
-   40. PRINT STYLES (new feature)
-   Keeps statements/receipts legible if a user prints from the
-   browser, and hides interactive chrome that means nothing on paper.
+   40. PRINT STYLES
    ============================================================= */
 @media print {
   .app-header,
