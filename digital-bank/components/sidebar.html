@@ -1,1 +1,41 @@
+<!-- =========================================================
+     COMPONENT: Section sidebar
+     Vertical tab navigation used inside .profile-layout on
+     pages that have multiple sub-sections (Profile, Settings).
 
+     To wire this up per page:
+       - Swap the links/icons/labels for the sections that page
+         actually has (this example uses Profile's sections:
+         Overview, Personal info, Security, Notifications,
+         Danger zone).
+       - Add class="is-active" to the current section's <a> and
+         keep it in sync with the visible .profile-panel via JS
+         (see main.js pattern: toggling data-tab / data-panel).
+       - Use .profile-nav-link--danger for any destructive section
+         (e.g. Danger zone / Close account) so it renders in red.
+       - Pair with a <div class="profile-content"> sibling holding
+         one <section class="profile-panel" data-panel="..."> per
+         sidebar link, inside a shared <div class="profile-layout">.
+     ========================================================= -->
+<nav class="profile-nav" aria-label="Section navigation">
+  <a href="#overview" class="profile-nav-link is-active" data-tab="overview">
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="2.5" y="2.5" width="6.5" height="6.5" rx="1.4" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="2.5" width="6.5" height="6.5" rx="1.4" stroke="currentColor" stroke-width="1.4"/><rect x="2.5" y="11" width="6.5" height="6.5" rx="1.4" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="11" width="6.5" height="6.5" rx="1.4" stroke="currentColor" stroke-width="1.4"/></svg>
+    Overview
+  </a>
+  <a href="#personal" class="profile-nav-link" data-tab="personal">
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="6.5" r="3.3" stroke="currentColor" stroke-width="1.4"/><path d="M3.5 17c0-3.6 3-6 6.5-6s6.5 2.4 6.5 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+    Personal info
+  </a>
+  <a href="#security" class="profile-nav-link" data-tab="security">
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2.5 16 5v4.5c0 4-2.7 6.9-6 8-3.3-1.1-6-4-6-8V5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+    Security
+  </a>
+  <a href="#notifications" class="profile-nav-link" data-tab="notifications">
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 8a5 5 0 0 1 10 0c0 4 1.5 5 1.5 5h-13S5 12 5 8Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+    Notifications
+  </a>
+  <a href="#danger" class="profile-nav-link profile-nav-link--danger" data-tab="danger">
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 3 17.5 16h-15L10 3Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M10 8.3v3M10 13.6v.1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+    Danger zone
+  </a>
+</nav>
