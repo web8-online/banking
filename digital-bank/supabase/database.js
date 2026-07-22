@@ -5,9 +5,9 @@
    Thin, typed-in-spirit wrappers around the tables defined in the
    project's schema.sql (accounts, transactions, beneficiaries,
    cards, savings_goals, notifications, support_tickets,
-   exchange_rates). Same contract as auth.js: every exported
-   function returns a plain { data, error } object, so callers
-   never need try/catch for expected failures.
+   exchange_rates, user_profiles). Same contract as auth.js: every
+   exported function returns a plain { data, error } object, so
+   callers never need try/catch for expected failures.
 
      import { getMyAccounts, createTransfer } from '../supabase/database.js';
 
@@ -33,6 +33,36 @@ async function resolveUserId(userId) {
 
 function wrap(promise) {
   return promise.then(({ data, error }) => ({ data: data ?? null, error: error ? error.message : null }));
+}
+
+/* -----------------------------------------------------------
+   User profile
+   ----------------------------------------------------------- */
+
+/** The signed-in (or given) user's profile row. */
+export async function getMyProfile(userId) {
+  const uid = await resolveUserId(userId);
+  if (!uid) return { data: null, error: 'Not signed in.' };
+  return wrap(supabase.from('user_profiles').select('*').eq('id', uid).single());
+}
+
+/**
+ * Updates arbitrary fields on the signed-in (or given) user's profile.
+ * Used right after signUpUser() to save fields it doesn't collect
+ * (date_of_birth, nationality, country, two_factor_method,
+ * marketing_opt_in), and later by profile.html / settings.html.
+ */
+export async function updateMyProfile(updates, userId) {
+  const uid = await resolveUserId(userId);
+  if (!uid) return { data: null, error: 'Not signed in.' };
+  return wrap(
+    supabase
+      .from('user_profiles')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', uid)
+      .select()
+      .single()
+  );
 }
 
 /* -----------------------------------------------------------
