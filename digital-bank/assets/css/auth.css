@@ -445,6 +445,12 @@
   margin-bottom: 1.5rem;
 }
 
+.auth-form-alert.auth-form-alert--success {
+  background: #EAF7EE;
+  border-color: #B8E2C4;
+  color: #1E7B3F;
+}
+
 .auth-form-alert svg {
   width: 18px;
   height: 18px;
