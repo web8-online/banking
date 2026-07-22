@@ -1,0 +1,1229 @@
+/* =============================================================
+   MERIDIAN — International Digital Banking
+   Stylesheet: assets/css/profile.css
+   SCOPE: The logged-in app shell (header + user menu) and the
+          account profile page (profile.html) specifically.
+
+   Load order on profile.html:
+     1. style.css     (tokens, reset, buttons, .field/.form-row-*)
+     2. components.css (if present on your build — shared app widgets)
+     3. profile.css    (this file)
+
+   This file assumes the design tokens defined in style.css's
+   :root block (--ink, --brass, --ivory, --font-display, etc.) are
+   already loaded. It does not redefine them.
+
+   Contents:
+     1.  App shell base
+     2.  App header
+     3.  App user menu (dropdown)
+     4.  Mobile app nav toggle
+     5.  Profile main layout
+     6.  Profile banner (identity)
+     7.  Profile section nav (sidebar / tab bar)
+     8.  Profile panels
+     9.  Summary cards (Overview)
+     10. Activity list
+     11. Generic profile card
+     12. Forms — subheads, avatar edit, password field
+     13. Status pills
+     14. Auth method picker (2FA)
+     15. Session list
+     16. Preference list / switch toggle
+     17. Danger zone
+     18. Toast (save feedback)
+     19. Skeleton / loading states
+     20. Responsive breakpoints
+   ============================================================= */
+
+/* -------------------------------------------------------------
+   1. App shell base
+   ------------------------------------------------------------- */
+.app-body {
+  background: var(--ivory);
+  min-height: 100vh;
+}
+
+/* -------------------------------------------------------------
+   2. App header
+   ------------------------------------------------------------- */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 800;
+  height: var(--app-header-h);
+  background: rgba(246, 245, 240, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+
+.app-header-row {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.app-header .brand {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-shrink: 0;
+}
+
+.app-header .brand-mark {
+  width: 30px;
+  height: 30px;
+}
+
+.app-nav {
+  display: flex;
+  align-items: center;
+  gap: 1.9rem;
+  flex: 1;
+  justify-content: center;
+}
+
+.app-nav a {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--slate);
+  padding-block: 0.4rem;
+  position: relative;
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+
+.app-nav a::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--brass);
+  transition: width 0.2s ease;
+}
+
+.app-nav a:hover,
+.app-nav a.is-active {
+  color: var(--ink);
+}
+
+.app-nav a:hover::after,
+.app-nav a.is-active::after {
+  width: 100%;
+}
+
+.app-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.app-icon-btn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.app-icon-btn:hover {
+  border-color: var(--ink);
+  background: rgba(10, 22, 40, 0.04);
+}
+
+.app-icon-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.app-icon-btn-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 17px;
+  height: 17px;
+  padding-inline: 3px;
+  border-radius: 999px;
+  background: var(--red);
+  color: var(--ivory);
+  font-size: 0.65rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--ivory);
+}
+
+/* -------------------------------------------------------------
+   3. App user menu (dropdown)
+   ------------------------------------------------------------- */
+.app-user-menu {
+  position: relative;
+  margin-left: 0.3rem;
+}
+
+.app-user-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.35rem 0.6rem 0.35rem 0.35rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.app-user-trigger:hover {
+  border-color: var(--ink);
+}
+
+.app-user-trigger .app-user-name {
+  font-size: 0.87rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.app-user-trigger svg {
+  width: 14px;
+  height: 14px;
+  color: var(--slate);
+  transition: transform 0.2s ease;
+}
+
+.app-user-menu.is-open .app-user-trigger svg {
+  transform: rotate(180deg);
+}
+
+.app-user-trigger img.avatar-photo,
+.app-user-dropdown img.avatar-photo {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.app-user-dropdown {
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  right: 0;
+  min-width: 200px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: 0.4rem;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
+  z-index: 950;
+}
+
+.app-user-menu.is-open .app-user-dropdown {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.app-user-dropdown a {
+  display: block;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--slate-dark);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.app-user-dropdown a:hover {
+  background: var(--ivory);
+  color: var(--ink);
+}
+
+.app-user-dropdown a.is-current {
+  color: var(--brass-dark);
+  font-weight: 600;
+}
+
+.app-user-dropdown-divider {
+  height: 1px;
+  background: var(--line);
+  margin: 0.35rem 0.2rem;
+}
+
+/* -------------------------------------------------------------
+   4. Mobile app nav toggle
+   ------------------------------------------------------------- */
+.app-nav-toggle {
+  display: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.app-nav-toggle svg {
+  width: 18px;
+  height: 18px;
+  color: var(--ink);
+}
+
+/* -------------------------------------------------------------
+   5. Profile main layout
+   ------------------------------------------------------------- */
+.profile-main {
+  padding-block: 2.5rem 5rem;
+}
+
+/* -------------------------------------------------------------
+   6. Profile banner (identity)
+   ------------------------------------------------------------- */
+.profile-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  background: linear-gradient(155deg, var(--ink) 0%, var(--ink-3) 100%);
+  color: var(--ivory);
+  border-radius: var(--radius-lg);
+  padding: 2rem 2.25rem;
+  margin-bottom: 2rem;
+  box-shadow: var(--shadow-soft);
+}
+
+.profile-banner-identity {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.profile-banner-identity h1 {
+  color: var(--ivory);
+  font-size: 1.6rem;
+  margin-bottom: 0.25rem;
+}
+
+.profile-banner-meta {
+  color: rgba(246, 245, 240, 0.62);
+  font-size: 0.88rem;
+}
+
+.profile-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.profile-avatar-wrap .avatar-initial--lg {
+  background: rgba(246, 245, 240, 0.1);
+  border: 1px solid var(--line-dark);
+  overflow: hidden;
+}
+
+.profile-avatar-edit {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--brass);
+  color: var(--ink);
+  border: 3px solid var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.profile-avatar-edit:hover {
+  background: var(--brass-light);
+  transform: scale(1.06);
+}
+
+.profile-avatar-edit svg {
+  width: 15px;
+  height: 15px;
+}
+
+.profile-avatar-edit.is-loading svg {
+  animation: avatar-spin 0.8s linear infinite;
+}
+
+@keyframes avatar-spin {
+  to { transform: rotate(360deg); }
+}
+
+.profile-banner-status {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.profile-banner-status .status-pill--neutral {
+  background: rgba(246, 245, 240, 0.1);
+  color: rgba(246, 245, 240, 0.8);
+  border-color: var(--line-dark);
+}
+
+/* -------------------------------------------------------------
+   7. Profile section nav (sidebar / tab bar)
+   ------------------------------------------------------------- */
+.profile-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 2.5rem;
+  align-items: start;
+}
+
+.profile-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  position: sticky;
+  top: calc(var(--app-header-h) + 1.5rem);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 0.6rem;
+}
+
+.profile-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--slate);
+  transition: background-color 0.16s ease, color 0.16s ease;
+}
+
+.profile-nav-link svg {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  color: var(--slate);
+  transition: color 0.16s ease;
+}
+
+.profile-nav-link:hover {
+  background: var(--ivory);
+  color: var(--ink);
+}
+
+.profile-nav-link.is-active {
+  background: var(--ink);
+  color: var(--ivory);
+}
+
+.profile-nav-link.is-active svg {
+  color: var(--brass-light);
+}
+
+.profile-nav-link--danger {
+  color: var(--red);
+}
+
+.profile-nav-link--danger svg {
+  color: var(--red);
+}
+
+.profile-nav-link--danger:hover {
+  background: var(--red-bg);
+  color: var(--red);
+}
+
+.profile-nav-link--danger.is-active {
+  background: var(--red);
+  color: var(--ivory);
+}
+
+.profile-nav-link--danger.is-active svg {
+  color: var(--ivory);
+}
+
+/* -------------------------------------------------------------
+   8. Profile panels
+   ------------------------------------------------------------- */
+.profile-content {
+  min-width: 0;
+}
+
+.profile-panel {
+  display: none;
+  animation: panel-in 0.25s ease;
+}
+
+.profile-panel.is-active {
+  display: block;
+}
+
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.profile-panel-head {
+  margin-bottom: 1.75rem;
+}
+
+.profile-panel-head h2 {
+  font-size: 1.4rem;
+  margin-bottom: 0.3rem;
+}
+
+.profile-panel-head p {
+  font-size: 0.92rem;
+  max-width: 56ch;
+}
+
+/* -------------------------------------------------------------
+   9. Summary cards (Overview)
+   ------------------------------------------------------------- */
+.profile-summary-grid {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+
+.profile-summary-card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 1.15rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.profile-summary-label {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--slate);
+  font-weight: 600;
+}
+
+.profile-summary-value {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* -------------------------------------------------------------
+   10. Activity list
+   ------------------------------------------------------------- */
+.activity-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.activity-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding-block: 0.85rem;
+  border-top: 1px solid var(--line);
+}
+
+.activity-list li:first-child {
+  border-top: none;
+}
+
+.activity-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--brass);
+  flex-shrink: 0;
+}
+
+.activity-list strong {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.activity-list span {
+  font-size: 0.82rem;
+  color: var(--slate);
+}
+
+.activity-list div {
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-list time {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--slate);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* -------------------------------------------------------------
+   11. Generic profile card
+   ------------------------------------------------------------- */
+.profile-card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 1.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.profile-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.4rem;
+}
+
+.profile-card-head h3 {
+  font-size: 1.05rem;
+}
+
+.profile-card-desc {
+  font-size: 0.88rem;
+  margin-bottom: 1.25rem;
+}
+
+.profile-card:last-child {
+  margin-bottom: 0;
+}
+
+/* -------------------------------------------------------------
+   12. Forms — subheads, avatar edit, password field
+   ------------------------------------------------------------- */
+.profile-form-subhead {
+  font-size: 0.95rem;
+  margin-block: 0.5rem 1rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+}
+
+.profile-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.password-field-wrap {
+  position: relative;
+}
+
+.password-field-wrap input {
+  padding-right: 2.75rem;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.65rem;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--slate);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.password-toggle:hover {
+  background: var(--ivory);
+  color: var(--ink);
+}
+
+.password-toggle svg {
+  width: 17px;
+  height: 17px;
+}
+
+.password-toggle .icon-hide {
+  display: none;
+}
+
+.password-toggle[aria-pressed="true"] .icon-show {
+  display: none;
+}
+
+.password-toggle[aria-pressed="true"] .icon-hide {
+  display: block;
+}
+
+.password-strength {
+  display: flex;
+  gap: 4px;
+  margin-top: 0.5rem;
+}
+
+.password-strength span {
+  height: 3px;
+  flex: 1;
+  border-radius: 2px;
+  background: var(--line);
+  transition: background-color 0.2s ease;
+}
+
+.password-strength[data-strength="1"] span:nth-child(1) { background: var(--red); }
+.password-strength[data-strength="2"] span:nth-child(-n+2) { background: var(--amber); }
+.password-strength[data-strength="3"] span:nth-child(-n+3) { background: var(--brass); }
+.password-strength[data-strength="4"] span { background: var(--green); }
+
+/* -------------------------------------------------------------
+   13. Status pills
+   ------------------------------------------------------------- */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.status-pill svg {
+  width: 13px;
+  height: 13px;
+}
+
+.status-pill--verified {
+  background: var(--green-bg);
+  color: var(--green);
+}
+
+.status-pill--neutral {
+  background: rgba(10, 22, 40, 0.05);
+  color: var(--slate-dark);
+  border-color: var(--line);
+}
+
+.status-pill--pending {
+  background: var(--amber-bg);
+  color: var(--amber);
+}
+
+.status-pill--blocked {
+  background: var(--red-bg);
+  color: var(--red);
+}
+
+/* -------------------------------------------------------------
+   14. Auth method picker (2FA)
+   ------------------------------------------------------------- */
+.auth-methods {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.85rem;
+}
+
+.auth-method-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.95rem 1.1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--paper);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--slate-dark);
+  cursor: pointer;
+  transition: border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease;
+}
+
+.auth-method-btn svg {
+  width: 19px;
+  height: 19px;
+  color: var(--slate);
+  flex-shrink: 0;
+  transition: color 0.18s ease;
+}
+
+.auth-method-btn:hover {
+  border-color: var(--brass);
+}
+
+.auth-method-btn.is-selected {
+  border-color: var(--brass);
+  background: rgba(181, 138, 68, 0.08);
+  color: var(--ink);
+}
+
+.auth-method-btn.is-selected svg {
+  color: var(--brass-dark);
+}
+
+/* -------------------------------------------------------------
+   15. Session list
+   ------------------------------------------------------------- */
+.session-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.session-item {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding-block: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.session-item:first-child {
+  border-top: none;
+}
+
+.session-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  background: var(--ivory);
+  color: var(--slate-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.session-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.session-item div {
+  flex: 1;
+  min-width: 0;
+}
+
+.session-item strong {
+  display: block;
+  font-size: 0.89rem;
+  color: var(--ink);
+}
+
+.session-item span {
+  font-size: 0.8rem;
+  color: var(--slate);
+}
+
+.wizard-edit-link {
+  background: none;
+  border: none;
+  color: var(--red);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius-sm);
+  transition: background-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.wizard-edit-link:hover {
+  background: var(--red-bg);
+}
+
+.wizard-edit-link:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* -------------------------------------------------------------
+   16. Preference list / switch toggle
+   ------------------------------------------------------------- */
+.preference-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.preference-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding-block: 1.1rem;
+  border-top: 1px solid var(--line);
+}
+
+.preference-row:first-child {
+  border-top: none;
+}
+
+.preference-row strong {
+  display: block;
+  font-size: 0.92rem;
+  color: var(--ink);
+  margin-bottom: 0.2rem;
+}
+
+.preference-row span {
+  font-size: 0.83rem;
+  color: var(--slate);
+  max-width: 48ch;
+  display: block;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.switch-track {
+  position: absolute;
+  inset: 0;
+  background: var(--line);
+  border-radius: 999px;
+  transition: background-color 0.2s ease;
+}
+
+.switch-track::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--paper);
+  box-shadow: 0 1px 3px rgba(10, 22, 40, 0.25);
+  transition: transform 0.2s ease;
+}
+
+.switch input:checked + .switch-track {
+  background: var(--brass);
+}
+
+.switch input:checked + .switch-track::before {
+  transform: translateX(18px);
+}
+
+.switch input:focus-visible + .switch-track {
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
+}
+
+.switch input:disabled + .switch-track {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* -------------------------------------------------------------
+   17. Danger zone
+   ------------------------------------------------------------- */
+.profile-card--danger {
+  border-color: rgba(192, 69, 59, 0.25);
+}
+
+.profile-card--danger .profile-card-head h3 {
+  color: var(--red);
+}
+
+/* -------------------------------------------------------------
+   18. Toast (save feedback)
+   ------------------------------------------------------------- */
+.profile-toast-region {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  pointer-events: none;
+}
+
+.profile-toast {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: var(--ink);
+  color: var(--ivory);
+  padding: 0.85rem 1.1rem;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-soft);
+  font-size: 0.87rem;
+  font-weight: 500;
+  max-width: 340px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.profile-toast.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.profile-toast .ic {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.profile-toast--success .ic {
+  background: var(--green-bg);
+  color: var(--green);
+}
+
+.profile-toast--error .ic {
+  background: rgba(192, 69, 59, 0.18);
+  color: #e08079;
+}
+
+.profile-toast .ic svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* -------------------------------------------------------------
+   19. Skeleton / loading states
+   ------------------------------------------------------------- */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+.is-skeleton {
+  position: relative;
+  color: transparent !important;
+  background: var(--line) !important;
+  border-radius: 6px;
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+  pointer-events: none;
+  user-select: none;
+}
+
+.btn.is-loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+}
+
+.btn.is-loading::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(10, 22, 40, 0.25);
+  border-top-color: var(--ink);
+  animation: avatar-spin 0.7s linear infinite;
+}
+
+.btn-danger.is-loading::after {
+  border-color: rgba(246, 245, 240, 0.35);
+  border-top-color: var(--ivory);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-panel,
+  .is-skeleton,
+  .btn.is-loading::after,
+  .profile-avatar-edit.is-loading svg {
+    animation: none !important;
+  }
+}
+
+/* -------------------------------------------------------------
+   20. Responsive breakpoints
+   ------------------------------------------------------------- */
+@media (max-width: 1080px) {
+  .profile-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 980px) {
+  .app-nav {
+    display: none;
+  }
+  .app-nav-toggle {
+    display: flex;
+  }
+  .app-nav.is-mobile-open {
+    display: flex;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    background: var(--paper);
+    border-bottom: 1px solid var(--line);
+    box-shadow: var(--shadow-card);
+    padding: 0.5rem;
+  }
+  .app-nav.is-mobile-open a {
+    padding: 0.85rem 0.75rem;
+    border-radius: var(--radius-sm);
+  }
+  .app-nav.is-mobile-open a::after {
+    display: none;
+  }
+  .app-nav.is-mobile-open a:hover,
+  .app-nav.is-mobile-open a.is-active {
+    background: var(--ivory);
+  }
+}
+
+@media (max-width: 860px) {
+  .profile-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-nav {
+    position: sticky;
+    top: var(--app-header-h);
+    z-index: 500;
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 0.3rem;
+    padding: 0.5rem;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .profile-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .profile-nav-link {
+    flex-shrink: 0;
+  }
+
+  .profile-nav-link span,
+  .profile-nav-link {
+    white-space: nowrap;
+  }
+
+  .form-row-2,
+  .form-row-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-methods {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .profile-banner {
+    padding: 1.5rem;
+  }
+
+  .profile-banner-identity {
+    gap: 0.9rem;
+  }
+
+  .profile-banner-identity h1 {
+    font-size: 1.3rem;
+  }
+
+  .avatar-initial--lg {
+    width: 64px;
+    height: 64px;
+    font-size: 1.5rem;
+  }
+
+  .profile-summary-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  .profile-card {
+    padding: 1.25rem;
+  }
+
+  .app-user-name {
+    display: none;
+  }
+
+  .profile-form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .profile-form-actions .btn {
+    width: 100%;
+  }
+
+  .profile-toast-region {
+    left: 1rem;
+    right: 1rem;
+    bottom: 1rem;
+  }
+
+  .profile-toast {
+    max-width: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .profile-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .preference-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+}
