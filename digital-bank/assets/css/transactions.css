@@ -1,0 +1,432 @@
+/* =============================================================
+   MERIDIAN — Transactions page
+   Stylesheet: assets/css/transactions.css
+   SCOPE: pages/transactions.html only.
+   Load order: style.css → dashboard.css → transactions.css
+   (this file overrides/extends dashboard.css's generic .tx-row,
+   which is built for the 4-column dashboard preview list —
+   this page needs more columns, so selectors here are scoped
+   under .tx-list-wrap to avoid leaking back into dashboard.html.)
+
+   Contents:
+     1. Summary strip
+     2. Filter bar
+     3. Two-column layout (list + detail)
+     4. Transaction list (day groups, rows, skeleton)
+     5. Detail panel (desktop sidebar / mobile sheet)
+     6. Toasts (page-local positioning already in dashboard.css)
+     7. Responsive breakpoints
+   ============================================================= */
+
+/* -------------------------------------------------------------
+   1. Summary strip
+   ------------------------------------------------------------- */
+.tx-summary-grid {
+  grid-template-columns: repeat(4, 1fr);
+  margin-bottom: 2rem;
+}
+
+.tx-summary-card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.tx-summary-value {
+  font-family: var(--font-mono);
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.tx-summary-value.skeleton {
+  display: inline-block;
+  width: 70%;
+  height: 1.2rem;
+}
+
+/* -------------------------------------------------------------
+   2. Filter bar
+   ------------------------------------------------------------- */
+.tx-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+  margin-bottom: 1.75rem;
+}
+
+.tx-search {
+  position: relative;
+  flex: 1 1 260px;
+  min-width: 200px;
+  display: flex;
+  align-items: center;
+}
+
+.tx-search svg {
+  position: absolute;
+  left: 0.9rem;
+  width: 16px;
+  height: 16px;
+  color: var(--slate);
+  pointer-events: none;
+}
+
+.tx-search input {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--ivory);
+  border-radius: 999px;
+  padding: 0.7rem 1rem 0.7rem 2.5rem;
+  font-size: 0.88rem;
+  color: var(--slate-dark);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.tx-search input::-webkit-search-cancel-button {
+  cursor: pointer;
+}
+
+.tx-search input:focus {
+  outline: none;
+  border-color: var(--brass);
+  background: var(--paper);
+  box-shadow: 0 0 0 3px rgba(181, 138, 68, 0.16);
+}
+
+.tx-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.tx-filter-group select,
+.tx-filter-group input[type="date"] {
+  border: 1px solid var(--line);
+  background: var(--ivory);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.8rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--slate-dark);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.tx-filter-group select:hover,
+.tx-filter-group input[type="date"]:hover {
+  border-color: var(--brass);
+}
+
+.tx-filter-group select:focus,
+.tx-filter-group input[type="date"]:focus {
+  outline: none;
+  border-color: var(--brass);
+  background: var(--paper);
+  box-shadow: 0 0 0 3px rgba(181, 138, 68, 0.16);
+}
+
+.tx-filter-group input[type="date"] {
+  cursor: text;
+  color-scheme: light;
+}
+
+/* -------------------------------------------------------------
+   3. Two-column layout
+   ------------------------------------------------------------- */
+.tx-layout {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 1.75rem;
+  align-items: start;
+}
+
+/* -------------------------------------------------------------
+   4. Transaction list
+   ------------------------------------------------------------- */
+.tx-list-wrap {
+  padding: 0.5rem 1.75rem 1.5rem;
+  min-height: 240px;
+}
+
+.tx-day-group + .tx-day-group {
+  margin-top: 0.5rem;
+}
+
+.tx-day-heading {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--slate);
+  font-weight: 600;
+  padding-top: 1.25rem;
+  padding-bottom: 0.35rem;
+}
+
+/* Wider row grid than dashboard.css's generic .tx-row (icon / main /
+   amount / time). This page also needs a type tag and a status pill,
+   so it gets its own column template, scoped so dashboard.html's
+   4-column preview list is unaffected. */
+.tx-list-wrap .tx-row {
+  grid-template-columns: auto 1fr auto auto auto auto;
+  gap: 1rem;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  padding-inline: 0.5rem;
+  margin-inline: -0.5rem;
+  transition: background-color 0.15s ease;
+}
+
+.tx-list-wrap .tx-row:hover {
+  background: var(--ivory);
+}
+
+.tx-list-wrap .tx-row.is-selected {
+  background: rgba(181, 138, 68, 0.08);
+}
+
+.tx-list-wrap .tx-row:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: -2px;
+}
+
+.tx-row .tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--slate-dark);
+  background: rgba(10, 22, 40, 0.06);
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  justify-self: start;
+}
+
+.tx-row--skeleton {
+  cursor: default;
+}
+
+.tx-list-count {
+  font-size: 0.78rem;
+  color: var(--slate);
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+.tx-load-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.25rem;
+}
+
+.tx-empty-state,
+.tx-error-state {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--slate);
+}
+
+.tx-empty-state svg,
+.tx-error-state svg {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 1rem;
+  color: var(--line);
+}
+
+.tx-empty-state strong,
+.tx-error-state strong {
+  display: block;
+  color: var(--ink);
+  font-size: 1rem;
+  margin-bottom: 0.3rem;
+}
+
+.tx-error-state svg {
+  color: var(--red);
+}
+
+/* -------------------------------------------------------------
+   5. Detail panel
+   ------------------------------------------------------------- */
+.tx-detail-panel {
+  position: sticky;
+  top: calc(var(--app-header-h) + 1.5rem);
+  padding: 1.75rem;
+}
+
+.tx-detail-close {
+  display: none;
+}
+
+.tx-detail-empty {
+  color: var(--slate);
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 2.5rem 0.5rem;
+}
+
+.tx-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+
+.tx-detail-head > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.tx-detail-head strong {
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.tx-detail-amount {
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  font-weight: 500;
+  margin-bottom: 1.25rem;
+}
+
+.tx-detail-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 1.5rem;
+}
+
+/* -------------------------------------------------------------
+   6. Scrim (mobile detail sheet backdrop)
+   ------------------------------------------------------------- */
+.tx-detail-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 22, 40, 0.5);
+  backdrop-filter: blur(2px);
+  z-index: 1400;
+}
+
+/* -------------------------------------------------------------
+   7. Responsive breakpoints
+   ------------------------------------------------------------- */
+@media (max-width: 1180px) {
+  .tx-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 1080px) {
+  .tx-layout {
+    grid-template-columns: 1fr;
+  }
+
+  /* Off-canvas behaviour: panel becomes a bottom sheet, toggled
+     by JS adding/removing .is-open. On wide viewports (see above)
+     it's simply the static sidebar and .is-open has no effect. */
+  .tx-detail-panel {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 82vh;
+    overflow-y: auto;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    box-shadow: var(--shadow-soft);
+    transform: translateY(100%);
+    transition: transform 0.28s cubic-bezier(0.65, 0, 0.35, 1);
+    z-index: 1500;
+    margin-bottom: 0;
+  }
+
+  .tx-detail-panel.is-open {
+    transform: translateY(0);
+  }
+
+  .tx-detail-close {
+    display: flex;
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+  }
+
+  .tx-detail-scrim {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+  }
+
+  .tx-detail-scrim.is-open {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+@media (min-width: 1081px) {
+  .tx-detail-scrim {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .tx-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tx-filter-group {
+    justify-content: flex-start;
+  }
+
+  .tx-filter-group select,
+  .tx-filter-group input[type="date"] {
+    flex: 1 1 auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .tx-summary-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .tx-list-wrap {
+    padding-inline: 1.1rem;
+  }
+
+  .tx-list-wrap .tx-row {
+    grid-template-columns: auto 1fr auto;
+    row-gap: 0.35rem;
+  }
+
+  .tx-list-wrap .tx-row .tag,
+  .tx-list-wrap .tx-row time {
+    grid-column: 2 / -1;
+    justify-self: start;
+  }
+
+  .tx-list-wrap .tx-row .status-pill {
+    grid-column: 3;
+    grid-row: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .tx-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
