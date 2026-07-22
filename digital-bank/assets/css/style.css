@@ -2056,7 +2056,8 @@ body.drawer-open {
 
 @media (max-width: 980px) {
   .nav-links,
-  .nav-actions .btn-ghost {
+  .nav-actions .btn-ghost,
+  .nav-actions .btn-primary {
     display: none;
   }
   .nav-toggle {
