@@ -11,6 +11,7 @@
 
 import { signUpUser, redirectIfAuthenticated } from '../supabase/auth.js';
 import { updateMyProfile } from '../supabase/database.js';
+import { ROUTES } from '../supabase/config.js';
 
 const $ = (selector, scope) => (scope || document).querySelector(selector);
 const $$ = (selector, scope) => Array.from((scope || document).querySelectorAll(selector));
@@ -341,8 +342,20 @@ function initSubmit() {
       // it should happen via a database trigger or Edge Function keyed
       // off this new user_profiles row.
 
-      showAlert(alertBox, 'Account created — check your email to verify your address.', 'success');
+      // Show a professional welcome message, then hand off to the login
+      // page rather than leaving the completed wizard on screen. The
+      // short delay lets the person actually read the message before
+      // the redirect fires.
+      showAlert(
+        alertBox,
+        'Welcome to Meridian. Your account has been created — please check your email to verify your address before logging in.',
+        'success'
+      );
       form.reset();
+
+      window.setTimeout(() => {
+        window.location.href = ROUTES.login;
+      }, 2000);
     } catch (err) {
       showAlert(alertBox, 'We could not reach Supabase. Check your connection and try again.', 'error');
     } finally {
