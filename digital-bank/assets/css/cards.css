@@ -1,1 +1,363 @@
+/* =============================================================
+   MERIDIAN — Cards page
+   Stylesheet: assets/css/cards.css
+   SCOPE: pages/cards.html only.
+   Load order: style.css → dashboard.css → cards.css
+   (reuses .modal-overlay/.modal-card/.field/.switch from
+   dashboard.css & style.css for the Add card / Set limit dialogs
+   — only the card grid and card-face visuals are new here.)
 
+   Contents:
+     1. Card grid
+     2. Card face visual (front of the physical/virtual card)
+     3. Card tile meta + actions
+     4. Add-card tile (empty slot)
+     5. Skeleton state
+     6. Responsive breakpoints
+   ============================================================= */
+
+/* -------------------------------------------------------------
+   1. Card grid
+   ------------------------------------------------------------- */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.75rem;
+  margin-top: 2rem;
+}
+
+.card-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+/* -------------------------------------------------------------
+   2. Card face visual
+   ------------------------------------------------------------- */
+.card-visual {
+  position: relative;
+  aspect-ratio: 1.586 / 1;
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: var(--ivory);
+  background: linear-gradient(150deg, var(--ink) 0%, var(--ink-3) 100%);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.card-visual::after {
+  /* faint decorative arc, purely ambient texture */
+  content: '';
+  position: absolute;
+  width: 220%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1px solid rgba(246, 245, 240, 0.06);
+  right: -60%;
+  top: -90%;
+  pointer-events: none;
+}
+
+.card-visual--credit {
+  background: linear-gradient(150deg, var(--brass-dark) 0%, var(--ink) 78%);
+}
+
+.card-visual--virtual {
+  background: linear-gradient(150deg, var(--ink-3) 0%, var(--ink) 100%);
+  border: 1px dashed rgba(216, 184, 118, 0.45);
+}
+
+.card-visual-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-visual-brand {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.98rem;
+  letter-spacing: 0.02em;
+}
+
+.card-visual-type {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brass-light);
+  border: 1px solid var(--line-dark);
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+}
+
+.card-visual-chip {
+  width: 38px;
+  height: 28px;
+  border-radius: 6px;
+  background: linear-gradient(155deg, var(--brass-light), var(--brass-dark));
+  position: relative;
+  z-index: 1;
+}
+
+.card-visual-chip::before,
+.card-visual-chip::after {
+  content: '';
+  position: absolute;
+  background: rgba(10, 22, 40, 0.35);
+}
+
+.card-visual-chip::before {
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  transform: translateY(-50%);
+}
+
+.card-visual-chip::after {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+}
+
+.card-visual-number {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  letter-spacing: 0.1em;
+  color: var(--ivory);
+}
+
+.card-visual-bottom {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.card-visual-label {
+  display: block;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(246, 245, 240, 0.55);
+  margin-bottom: 0.25rem;
+}
+
+.card-visual-bottom strong {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--ivory);
+  white-space: nowrap;
+}
+
+.card-visual-bottom > div:last-child {
+  text-align: right;
+}
+
+.card-visual.is-frozen {
+  filter: grayscale(0.85);
+  opacity: 0.72;
+}
+
+.card-visual-frozen-badge {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  background: rgba(10, 22, 40, 0.45);
+  backdrop-filter: blur(1px);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ivory);
+  z-index: 2;
+}
+
+.card-visual-frozen-badge svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* -------------------------------------------------------------
+   3. Card tile meta + actions
+   ------------------------------------------------------------- */
+.card-tile-meta {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.card-tile-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.85rem;
+}
+
+.card-tile-meta-row span:first-child {
+  color: var(--slate);
+}
+
+.card-tile-meta-row strong {
+  font-family: var(--font-mono);
+  color: var(--ink);
+  font-weight: 600;
+  text-align: right;
+}
+
+.card-tile-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.15rem;
+}
+
+.card-tile-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.card-tile-freeze {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1;
+}
+
+.card-tile-freeze span {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.card-tile-actions .btn {
+  flex-shrink: 0;
+}
+
+.card-tile--pending .card-tile-actions {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.card-tile-pending-note {
+  font-size: 0.78rem;
+  color: var(--slate);
+  margin-bottom: 0.5rem;
+}
+
+/* -------------------------------------------------------------
+   4. Add-card tile
+   ------------------------------------------------------------- */
+.card-tile--add .card-visual {
+  background: transparent;
+  border: 1.5px dashed var(--line);
+  box-shadow: none;
+  color: var(--slate);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+}
+
+.card-tile--add .card-visual:hover {
+  border-color: var(--brass);
+  color: var(--ink);
+  background: rgba(181, 138, 68, 0.05);
+}
+
+.card-tile--add .card-visual::after {
+  display: none;
+}
+
+.card-tile--add-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.card-tile--add-inner svg {
+  width: 28px;
+  height: 28px;
+}
+
+/* -------------------------------------------------------------
+   5. Skeleton / empty / error states
+   ------------------------------------------------------------- */
+.card-tile--skeleton .card-visual {
+  box-shadow: none;
+}
+
+.cards-empty-state,
+.cards-error-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--slate);
+}
+
+.cards-empty-state svg,
+.cards-error-state svg {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 1rem;
+  color: var(--line);
+}
+
+.cards-error-state svg {
+  color: var(--red);
+}
+
+.cards-empty-state strong,
+.cards-error-state strong {
+  display: block;
+  color: var(--ink);
+  font-size: 1rem;
+  margin-bottom: 0.3rem;
+}
+
+/* -------------------------------------------------------------
+   6. Responsive breakpoints
+   ------------------------------------------------------------- */
+@media (max-width: 1180px) {
+  .card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .card-visual {
+    aspect-ratio: 1.65 / 1;
+  }
+
+  .page-head--split {
+    align-items: stretch;
+  }
+
+  .page-head--split .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
