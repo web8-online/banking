@@ -9,11 +9,12 @@
    Contents:
      1.  App shell (body, anti-flash guard)
      2.  App header / nav / user menu
-     3.  Page heads & tab toggle
+     3.  Page heads, quick actions & tab toggle
      4.  Status pills & badges
      5.  Cards (generic .profile-card shell used everywhere)
-     6.  Dashboard-specific pieces (balance card, strip, tx list,
-         spend breakdown, goals, mini card preview)
+     6.  Dashboard-specific pieces (layout grid, balance card,
+         strip, tx list, spend breakdown, goals, mini card
+         preview, upsell)
      7.  Profile page (banner, sidebar nav, panels, forms, switches)
      8.  Accounts page (grid, account-detail-card)
      9.  Modals
@@ -247,11 +248,12 @@ body.app-body.auth-pending {
 }
 
 /* -------------------------------------------------------------
-   3. Page heads & tab toggle
+   3. Page heads, quick actions & tab toggle
    ------------------------------------------------------------- */
 .app-main,
 .accounts-main,
-.profile-main {
+.profile-main,
+.dashboard-main {
   padding-block: 2.75rem 5rem;
 }
 
@@ -260,10 +262,26 @@ body.app-body.auth-pending {
   margin-bottom: 2rem;
 }
 
+/* .dashboard-head sits h1+quick-actions side by side; .page-head
+   (accounts.html etc.) only ever holds a heading + paragraph, so
+   it doesn't need this and stays block-level. */
+.dashboard-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
 .dashboard-head h1,
 .page-head h1 {
   font-size: 1.8rem;
   margin-bottom: 0.35rem;
+}
+
+.dashboard-head p {
+  font-size: 0.9rem;
+  color: var(--slate);
 }
 
 .page-head p {
@@ -277,6 +295,48 @@ body.app-body.auth-pending {
   justify-content: space-between;
   gap: 1.5rem;
   flex-wrap: wrap;
+}
+
+/* Quick-action buttons (Send / Add money / Exchange / Request)
+   in the dashboard greeting row. */
+.quick-actions {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.quick-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink);
+  width: 76px;
+  text-align: center;
+}
+
+.quick-action-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--brass-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.quick-action-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.quick-action:hover .quick-action-icon {
+  background: var(--brass);
+  color: var(--ink);
+  transform: translateY(-2px);
 }
 
 .tab-toggle {
@@ -385,6 +445,25 @@ body.app-body.auth-pending {
 /* -------------------------------------------------------------
    6. Dashboard-specific pieces
    ------------------------------------------------------------- */
+
+/* Two-column layout: main column (balance/tx/spending) + sidebar
+   (goals/cards/upsell). dashboard.html relies on this for its
+   .dashboard-main-col / .dashboard-side-col split. */
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 1.75rem;
+  align-items: start;
+  margin-top: 2.25rem;
+}
+
+.dashboard-main-col,
+.dashboard-side-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
 .dashboard-balance-card {
   background: linear-gradient(155deg, var(--ink) 0%, var(--ink-3) 100%);
   color: var(--ivory);
@@ -536,6 +615,11 @@ body.app-body.auth-pending {
   white-space: nowrap;
 }
 
+.tx-summary-label {
+  font-size: 0.78rem;
+  color: var(--slate);
+}
+
 .spend-breakdown,
 .goal-item {
   display: flex;
@@ -578,6 +662,12 @@ body.app-body.auth-pending {
   font-size: 0.86rem;
 }
 
+/* Spacing between the two (or more) .goal-item blocks in the
+   savings-goals card — without this they sit flush together. */
+.goal-item + .goal-item {
+  margin-top: 1.4rem;
+}
+
 .mini-card-preview {
   display: flex;
   align-items: center;
@@ -600,6 +690,33 @@ body.app-body.auth-pending {
 .mini-card--dark {
   background: linear-gradient(155deg, var(--ink), var(--ink-3));
   color: var(--brass-light);
+}
+
+/* Upsell card in the dashboard sidebar */
+.dashboard-upsell {
+  background: linear-gradient(155deg, var(--brass) 0%, var(--brass-dark) 100%);
+  border-color: transparent;
+}
+
+.dashboard-upsell h3 {
+  color: var(--ink);
+  margin-bottom: 0.6rem;
+}
+
+.dashboard-upsell p {
+  color: rgba(10, 22, 40, 0.72);
+  font-size: 0.88rem;
+  margin-bottom: 1.4rem;
+}
+
+.dashboard-upsell .btn-primary {
+  background: var(--ink);
+  color: var(--ivory);
+  box-shadow: none;
+}
+
+.dashboard-upsell .btn-primary:hover {
+  background: var(--ink-3);
 }
 
 /* -------------------------------------------------------------
@@ -1076,11 +1193,6 @@ body.app-body.auth-pending {
   gap: 0.25rem;
 }
 
-.tx-summary-label {
-  font-size: 0.78rem;
-  color: var(--slate);
-}
-
 .account-detail-balance .balance-amount {
   font-size: 1.7rem;
   color: var(--ink);
@@ -1386,6 +1498,12 @@ body.app-body.auth-pending {
   }
 }
 
+@media (max-width: 1080px) {
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 980px) {
   .app-nav {
     display: none;
@@ -1433,6 +1551,17 @@ body.app-body.auth-pending {
   .page-head--split .btn {
     width: 100%;
   }
+  .dashboard-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .quick-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .quick-action {
+    width: auto;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1441,5 +1570,8 @@ body.app-body.auth-pending {
   }
   .modal-card {
     padding: 1.5rem;
+  }
+  .dashboard-balance-card .balance-amount {
+    font-size: 1.9rem;
   }
 }
