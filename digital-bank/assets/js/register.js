@@ -1,103 +1,229 @@
 /* =============================================================
-   MERIDIAN — International Digital Banking
-   Page script: pages/register.js
-
-   Wires up register.html end to end:
-     1. Starts the 4-step wizard (account type → details →
-        security → review) via initRegisterWizard() in app-ui.js.
-     2. Handles the real form submit on the final step — validates
-        the terms checkbox and password match, then calls
-        signUpUser() in supabase/auth.js.
-
-   signUpUser() creates the Supabase Auth user AND inserts the
-   matching row into the public.user_profiles table — that insert
-   is what makes the new account visible in your database (Table
-   Editor → user_profiles) after a successful signup.
-
-   Import path: this file lives in /pages/, so ../assets/js/app-ui.js
-   and ../supabase/*.js resolve correctly from here.
+   MERIDIAN — Register page
+   Script: pages/register.js
+   Loaded as a module by register.html only. Handles:
+     1. Wizard step navigation (Continue / Back / Edit)
+     2. Account type card selection
+     3. Password show/hide + strength meter
+     4. Review step population
+     5. Submit validation + demo alert
    ============================================================= */
 
-import { initRegisterWizard } from '../assets/js/app-ui.js';
-import { signUpUser } from '../supabase/auth.js';
-import { ROUTES } from '../supabase/config.js';
+const $ = (selector, scope) => (scope || document).querySelector(selector);
+const $$ = (selector, scope) => Array.from((scope || document).querySelectorAll(selector));
 
-document.addEventListener('DOMContentLoaded', () => {
-  // Sets up account-type cards, password show/hide + strength meter,
-  // and the step indicator/panel switching.
-  initRegisterWizard();
+const STEP_LABELS = {
+  1: 'Account type',
+  2: 'Your details',
+  3: 'Security',
+  4: 'Review',
+};
 
-  const form = document.getElementById('register-form');
+function showAlert(alertBox, message) {
+  if (!alertBox) return;
+  const text = $('.auth-form-alert-text', alertBox);
+  if (text) text.textContent = message;
+  alertBox.hidden = false;
+}
+
+function hideAlert(alertBox) {
+  if (!alertBox) return;
+  alertBox.hidden = true;
+}
+
+/* -----------------------------------------------------------
+   Wizard navigation
+   ----------------------------------------------------------- */
+function initWizard() {
+  const form = $('#register-form');
   if (!form) return;
 
-  const alertBox = document.querySelector('.auth-form-alert');
-  const alertText = document.querySelector('.auth-form-alert-text');
-  const submitBtn = form.querySelector('.auth-submit-btn');
+  const panels = $$('.wizard-panel', form);
+  const steps = $$('.wizard-step');
+  const stepCurrentEl = $('#wizard-step-current');
+  const stepLabelEl = $('#wizard-step-label');
+  const alertBox = $('.auth-form-alert');
 
-  function showError(message) {
-    alertText.textContent = message;
-    alertBox.hidden = false;
-    alertBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  function validatePanel(panelEl) {
+    const controls = $$('input, select', panelEl).filter((el) => !el.disabled);
+    for (const control of controls) {
+      if (!control.checkValidity()) {
+        control.reportValidity();
+        return false;
+      }
+    }
+    return true;
   }
 
-  function clearError() {
-    alertBox.hidden = true;
+  function goToStep(targetStep) {
+    panels.forEach((panel) => {
+      panel.classList.toggle('is-active', Number(panel.getAttribute('data-panel')) === targetStep);
+    });
+
+    steps.forEach((step) => {
+      const stepNum = Number(step.getAttribute('data-step'));
+      step.classList.toggle('is-active', stepNum === targetStep);
+      step.classList.toggle('is-complete', stepNum < targetStep);
+    });
+
+    if (stepCurrentEl) stepCurrentEl.textContent = String(targetStep);
+    if (stepLabelEl) stepLabelEl.textContent = STEP_LABELS[targetStep] || '';
+
+    if (targetStep === 4) populateReview();
+
+    hideAlert(alertBox);
   }
 
-  function setLoading(isLoading) {
-    if (!submitBtn) return;
-    submitBtn.classList.toggle('is-loading', isLoading);
-    submitBtn.disabled = isLoading;
-  }
+  $$('.wizard-next', form).forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const currentPanel = btn.closest('.wizard-panel');
+      if (!validatePanel(currentPanel)) return;
 
-  form.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    clearError();
+      if (currentPanel.getAttribute('data-panel') === '3' && !passwordsMatch()) return;
 
-    // This submit only fires from step 4 (the button there is the
-    // form's only type="submit" control — every earlier "Continue"
-    // is type="button" and handled by the wizard instead).
-
-    const termsChecked = document.getElementById('register-terms').checked;
-    if (!termsChecked) {
-      showError('Please agree to the Terms of service and Privacy policy to continue.');
-      return;
-    }
-
-    const firstName = document.getElementById('register-first-name').value.trim();
-    const lastName = document.getElementById('register-last-name').value.trim();
-    const email = document.getElementById('register-email').value.trim();
-    const phone = document.getElementById('register-phone').value.trim();
-    const password = document.getElementById('register-password').value;
-    const passwordConfirm = document.getElementById('register-password-confirm').value;
-
-    if (!firstName || !lastName || !email || !password) {
-      showError('Please go back and complete all required fields.');
-      return;
-    }
-
-    if (password !== passwordConfirm) {
-      showError("Passwords don't match.");
-      return;
-    }
-
-    if (password.length < 10) {
-      showError('Your password needs to be at least 10 characters long.');
-      return;
-    }
-
-    setLoading(true);
-    const { data, error } = await signUpUser({ firstName, lastName, email, password, phone });
-    setLoading(false);
-
-    if (error) {
-      showError(error);
-      return;
-    }
-
-    // Account + user_profiles row created. Supabase's default project
-    // settings require email confirmation before login, so send the
-    // person to login.html rather than straight into the dashboard.
-    window.location.href = ROUTES.login;
+      goToStep(Number(btn.getAttribute('data-goto')));
+    });
   });
-});
+
+  $$('.wizard-back, .wizard-edit-link', form).forEach((btn) => {
+    btn.addEventListener('click', () => goToStep(Number(btn.getAttribute('data-goto'))));
+  });
+
+  function passwordsMatch() {
+    const pw = $('#register-password');
+    const confirm = $('#register-password-confirm');
+    if (!pw || !confirm) return true;
+
+    const field = confirm.closest('.field');
+    if (pw.value !== confirm.value) {
+      field.classList.add('has-error');
+      $('.field-error', field).textContent = "Passwords don't match.";
+      confirm.focus();
+      return false;
+    }
+    field.classList.remove('has-error');
+    $('.field-error', field).textContent = '';
+    return true;
+  }
+
+  function populateReview() {
+    const accountType = $('input[name="account_type"]:checked', form);
+    const firstName = $('#register-first-name').value.trim();
+    const lastName = $('#register-last-name').value.trim();
+    const email = $('#register-email').value.trim();
+    const countrySelect = $('#register-country');
+    const twoFactor = $('input[name="two_factor_method"]:checked', form);
+
+    const countryText = countrySelect && countrySelect.selectedIndex > 0
+      ? countrySelect.options[countrySelect.selectedIndex].textContent
+      : '—';
+
+    const twoFactorLabels = { email: 'Email code', authenticator: 'Authenticator app' };
+
+    setReview('account_type', accountType ? capitalize(accountType.value) : '—');
+    setReview('full_name', firstName || lastName ? `${firstName} ${lastName}`.trim() : '—');
+    setReview('email', email || '—');
+    setReview('country', countryText);
+    setReview('two_factor_method', twoFactor ? twoFactorLabels[twoFactor.value] : '—');
+  }
+
+  function setReview(key, value) {
+    const el = $(`[data-review="${key}"]`, form);
+    if (el) el.textContent = value;
+  }
+
+  function capitalize(str) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+
+  goToStep(1);
+}
+
+/* -----------------------------------------------------------
+   Account type card selection
+   ----------------------------------------------------------- */
+function initAccountTypeCards() {
+  const cards = $$('.account-type-card');
+  if (!cards.length) return;
+
+  cards.forEach((card) => {
+    const input = $('input', card);
+    if (!input) return;
+    input.addEventListener('change', () => {
+      cards.forEach((c) => c.classList.toggle('is-selected', c === card));
+    });
+  });
+}
+
+/* -----------------------------------------------------------
+   Password show/hide (both fields, independent)
+   ----------------------------------------------------------- */
+function initPasswordToggles() {
+  $$('.password-toggle').forEach((toggle) => {
+    const wrap = toggle.closest('.password-field-wrap');
+    const input = wrap ? $('input', wrap) : null;
+    if (!input) return;
+
+    toggle.addEventListener('click', () => {
+      const isHidden = input.type === 'password';
+      input.type = isHidden ? 'text' : 'password';
+      toggle.setAttribute('aria-pressed', String(isHidden));
+      toggle.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+    });
+  });
+}
+
+/* -----------------------------------------------------------
+   Password strength meter
+   ----------------------------------------------------------- */
+function initPasswordStrength() {
+  const input = $('#register-password');
+  const meter = $('.password-strength');
+  if (!input || !meter) return;
+
+  input.addEventListener('input', () => {
+    const value = input.value;
+    let score = 0;
+    if (value.length >= 8) score += 1;
+    if (/[a-z]/.test(value) && /[A-Z]/.test(value)) score += 1;
+    if (/\d/.test(value)) score += 1;
+    if (/[^A-Za-z0-9]/.test(value)) score += 1;
+    meter.setAttribute('data-strength', String(score));
+  });
+}
+
+/* -----------------------------------------------------------
+   Final submit
+   ----------------------------------------------------------- */
+function initSubmit() {
+  const form = $('#register-form');
+  if (!form) return;
+
+  const alertBox = $('.auth-form-alert');
+  const termsCheckbox = $('#register-terms');
+  const submitBtn = $('.auth-submit-btn', form);
+
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    hideAlert(alertBox);
+
+    if (!termsCheckbox.checkValidity()) {
+      termsCheckbox.reportValidity();
+      return;
+    }
+
+    if (submitBtn) submitBtn.classList.add('is-loading');
+
+    // Demo only: no real account is created.
+    window.setTimeout(() => {
+      if (submitBtn) submitBtn.classList.remove('is-loading');
+      showAlert(alertBox, 'This is a demo registration form — no real Meridian account has been created.');
+    }, 900);
+  });
+}
+
+initWizard();
+initAccountTypeCards();
+initPasswordToggles();
+initPasswordStrength();
+initSubmit();
