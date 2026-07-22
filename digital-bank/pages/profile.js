@@ -166,6 +166,35 @@ function initLogout() {
 }
 
 /* -----------------------------------------------------------
+   Mobile app nav toggle
+   ----------------------------------------------------------- */
+function initMobileNav() {
+  const toggle = $('.app-nav-toggle');
+  const nav = $('.app-nav');
+  if (!toggle || !nav) return;
+
+  toggle.addEventListener('click', () => {
+    const isOpen = nav.classList.toggle('is-mobile-open');
+    toggle.setAttribute('aria-expanded', String(isOpen));
+  });
+
+  nav.addEventListener('click', (event) => {
+    if (event.target.tagName === 'A') {
+      nav.classList.remove('is-mobile-open');
+      toggle.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!nav.classList.contains('is-mobile-open')) return;
+    if (!nav.contains(event.target) && !toggle.contains(event.target)) {
+      nav.classList.remove('is-mobile-open');
+      toggle.setAttribute('aria-expanded', 'false');
+    }
+  });
+}
+
+/* -----------------------------------------------------------
    Section navigation (tabs)
    ----------------------------------------------------------- */
 function initSectionNav() {
@@ -607,6 +636,7 @@ function initDangerZone() {
 
   initUserMenu();
   initLogout();
+  initMobileNav();
   initSectionNav();
   initAvatarUpload();
   initPersonalForm();
