@@ -1,0 +1,340 @@
+/* =============================================================
+   MERIDIAN — International Digital Banking
+   Stylesheet: assets/css/settings.css
+   SCOPE: settings.html only. Loaded after profile.css, which
+          already provides the app shell, sidebar nav, panels,
+          cards, forms, and switches this page reuses.
+
+   Load order on settings.html:
+     1. style.css
+     2. auth-guard.css
+     3. profile.css     (shell, sidebar, panels, cards, switches)
+     4. settings.css    (this file)
+
+   Contents:
+     1. Statement table
+     2. Statement preview
+     3. Linked accounts / connected apps list
+     4. Modal (add external account / API key)
+     5. API key reveal
+     6. Responsive
+   ============================================================= */
+
+/* -------------------------------------------------------------
+   1. Statement table
+   ------------------------------------------------------------- */
+.statement-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.statement-table th {
+  text-align: left;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--slate);
+  font-weight: 600;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.statement-table td {
+  padding-block: 0.9rem;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.9rem;
+  color: var(--slate-dark);
+  vertical-align: middle;
+}
+
+.statement-table tr:last-child td {
+  border-bottom: none;
+}
+
+.statement-table-empty {
+  color: var(--slate);
+  text-align: center;
+  padding-block: 1.75rem;
+}
+
+/* -------------------------------------------------------------
+   2. Statement preview
+   ------------------------------------------------------------- */
+.statement-preview {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.statement-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+}
+
+.statement-preview-count {
+  font-size: 0.82rem;
+  color: var(--slate);
+}
+
+.statement-preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.statement-preview-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.85rem;
+}
+
+.statement-preview-list li:last-child {
+  border-bottom: none;
+}
+
+.statement-preview-list .desc {
+  color: var(--ink);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.statement-preview-list .meta {
+  color: var(--slate);
+  font-size: 0.78rem;
+  flex-shrink: 0;
+}
+
+.statement-preview-list .amt {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.statement-preview-list .amt.pos {
+  color: var(--green);
+}
+
+.statement-preview-empty {
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--slate);
+  font-size: 0.85rem;
+}
+
+/* -------------------------------------------------------------
+   3. Linked accounts / connected apps list
+   ------------------------------------------------------------- */
+.linked-account-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.linked-account-item {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding-block: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.linked-account-item:first-child {
+  border-top: none;
+}
+
+.linked-account-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  background: var(--ivory);
+  color: var(--slate-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.linked-account-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.linked-account-item div {
+  flex: 1;
+  min-width: 0;
+}
+
+.linked-account-item strong {
+  display: block;
+  font-size: 0.89rem;
+  color: var(--ink);
+}
+
+.linked-account-item span {
+  font-size: 0.8rem;
+  color: var(--slate);
+}
+
+.linked-account-empty {
+  padding: 1.5rem 0;
+  text-align: center;
+  color: var(--slate);
+  font-size: 0.88rem;
+}
+
+/* -------------------------------------------------------------
+   4. Modal (add external account / API key)
+   ------------------------------------------------------------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  background: rgba(10, 22, 40, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.22s ease, visibility 0.22s;
+}
+
+.modal-overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-panel {
+  width: 100%;
+  max-width: 440px;
+  background: var(--paper);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  padding: 2rem;
+  transform: translateY(14px) scale(0.98);
+  transition: transform 0.25s cubic-bezier(0.65, 0, 0.35, 1);
+  max-height: calc(100vh - 3rem);
+  overflow-y: auto;
+}
+
+.modal-overlay.is-open .modal-panel {
+  transform: translateY(0) scale(1);
+}
+
+.modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.modal-head h2 {
+  font-size: 1.2rem;
+}
+
+.modal-close {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.modal-close:hover {
+  background: var(--ivory);
+}
+
+.modal-close svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* -------------------------------------------------------------
+   5. API key reveal
+   ------------------------------------------------------------- */
+.api-key-reveal {
+  background: var(--ink);
+  color: var(--brass-light);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.1rem;
+  font-size: 0.88rem;
+  word-break: break-all;
+  margin-block: 1rem 1.5rem;
+}
+
+/* -------------------------------------------------------------
+   6. Manual "reduce motion" override
+   ------------------------------------------------------------- */
+/* The "Reduce motion" switch on this page sets this class on
+   <html> and persists the preference to user_profiles. It only
+   fully takes effect app-wide once each page's init also checks
+   that stored value and toggles the same class — this rule is the
+   visual half of that, scoped narrowly so it's safe to ship now. */
+html.force-reduce-motion *,
+html.force-reduce-motion *::before,
+html.force-reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
+/* -------------------------------------------------------------
+   7. Responsive
+   ------------------------------------------------------------- */
+@media (max-width: 760px) {
+  .statement-table thead {
+    display: none;
+  }
+  .statement-table tr {
+    display: block;
+    padding-block: 0.85rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .statement-table td {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    border-bottom: none;
+    padding-block: 0.3rem;
+  }
+  .statement-table td:not(:last-child)::before {
+    content: attr(data-label);
+    font-size: 0.76rem;
+    color: var(--slate);
+    font-weight: 600;
+  }
+  .statement-table td:last-child {
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 640px) {
+  .linked-account-item {
+    flex-wrap: wrap;
+  }
+  .linked-account-item > .status-pill,
+  .linked-account-item > .wizard-edit-link {
+    margin-left: 48px;
+  }
+  .modal-panel {
+    padding: 1.5rem;
+  }
+}
