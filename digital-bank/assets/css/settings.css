@@ -12,16 +12,42 @@
      4. settings.css    (this file)
 
    Contents:
-     1. Statement table
-     2. Statement preview
-     3. Linked accounts / connected apps list
-     4. Modal (add external account / API key)
-     5. API key reveal
-     6. Responsive
+     1. Page head
+     2. Statement table
+     3. Statement preview
+     4. Linked accounts / connected apps list
+     5. Modal (add external account / API key)
+     6. API key reveal
+     7. Manual "reduce motion" override
+     8. Responsive
    ============================================================= */
 
 /* -------------------------------------------------------------
-   1. Statement table
+   1. Page head
+   ------------------------------------------------------------- */
+/* Wasn't defined anywhere in style.css / auth-guard.css /
+   profile.css, so the browser's default <p> margin (1em top and
+   bottom) was adding unaccounted-for space above .profile-layout.
+   Explicit margin-bottom on the block + margin reset on the
+   paragraph replaces that with a fixed, intentional gap. */
+.page-head {
+  margin-bottom: 2rem;
+}
+
+.page-head h1 {
+  font-size: 1.8rem;
+  margin-bottom: 0.35rem;
+}
+
+.page-head p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--slate);
+  max-width: 56ch;
+}
+
+/* -------------------------------------------------------------
+   2. Statement table
    ------------------------------------------------------------- */
 .statement-table {
   width: 100%;
@@ -58,7 +84,7 @@
 }
 
 /* -------------------------------------------------------------
-   2. Statement preview
+   3. Statement preview
    ------------------------------------------------------------- */
 .statement-preview {
   margin-top: 1.5rem;
@@ -134,7 +160,7 @@
 }
 
 /* -------------------------------------------------------------
-   3. Linked accounts / connected apps list
+   4. Linked accounts / connected apps list
    ------------------------------------------------------------- */
 .linked-account-list {
   display: flex;
@@ -194,7 +220,7 @@
 }
 
 /* -------------------------------------------------------------
-   4. Modal (add external account / API key)
+   5. Modal (add external account / API key)
    ------------------------------------------------------------- */
 .modal-overlay {
   position: fixed;
@@ -268,7 +294,7 @@
 }
 
 /* -------------------------------------------------------------
-   5. API key reveal
+   6. API key reveal
    ------------------------------------------------------------- */
 .api-key-reveal {
   background: var(--ink);
@@ -281,7 +307,7 @@
 }
 
 /* -------------------------------------------------------------
-   6. Manual "reduce motion" override
+   7. Manual "reduce motion" override
    ------------------------------------------------------------- */
 /* The "Reduce motion" switch on this page sets this class on
    <html> and persists the preference to user_profiles. It only
@@ -297,7 +323,7 @@ html.force-reduce-motion *::after {
 }
 
 /* -------------------------------------------------------------
-   7. Responsive
+   8. Responsive
    ------------------------------------------------------------- */
 @media (max-width: 760px) {
   .statement-table thead {
