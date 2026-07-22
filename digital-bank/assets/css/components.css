@@ -77,6 +77,17 @@
   align-items: flex-end;
   gap: 1rem;
   font-family: var(--font-body);
+  /* IMPORTANT: because .chat-panel is hidden with opacity/visibility
+     (not display:none), it still occupies its full 600px of layout
+     height inside this flex column even while "closed" — so this
+     wrapper's own box is ~380x676px, not just the size of the
+     launcher. Without this rule, that invisible box sits on top of
+     whatever is underneath it (footer, back-to-top button, contact
+     card, etc.) at z-index 1000 and silently swallows clicks meant
+     for those elements. pointer-events:none on the wrapper turns it
+     back into a pass-through container; the two children below
+     re-enable clicks on just themselves. */
+  pointer-events: none;
 }
 
 .chat-launcher {
@@ -94,6 +105,7 @@
   box-shadow: 0 14px 30px -10px rgba(181, 138, 68, 0.65);
   transition: background-color 0.2s ease, transform 0.2s ease;
   flex-shrink: 0;
+  pointer-events: auto;
 }
 
 .chat-launcher:hover {
@@ -164,6 +176,11 @@
   transform: translateY(16px) scale(0.98);
   transform-origin: bottom right;
   transition: opacity 0.22s ease, transform 0.22s ease, visibility 0.22s ease;
+  /* visibility:hidden already excludes this from hit-testing while
+     closed, but set explicitly so intent is clear and this keeps
+     working correctly once open (paired with .chat-widget's
+     pointer-events:none above). */
+  pointer-events: auto;
 }
 
 .chat-widget.is-open .chat-panel {
@@ -870,6 +887,12 @@ html.a11y-reduce-motion *::after {
   gap: 0.75rem;
   width: 340px;
   max-width: calc(100vw - 2rem);
+  /* Same class of bug as .chat-widget above: individual .toast items
+     are hidden via opacity (with pointer-events:none on the toast
+     itself already), but if this stack ever contains toasts sized
+     by JS before they're shown, keep this pass-through so an empty
+     or all-hidden stack never blocks clicks underneath it. */
+  pointer-events: none;
 }
 
 .toast {
