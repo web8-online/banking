@@ -1,16 +1,13 @@
 /* =============================================================
    MERIDIAN — International Digital Banking
    Supabase client configuration: supabase/config.js
-
    This file creates a single, shared Supabase client used by
    every other module (auth.js, database.js) and by page scripts.
-
    SETUP
    -----
    1. Go to your Supabase project → Project Settings → API.
    2. Copy the "Project URL" into SUPABASE_URL below.
    3. Copy the "anon public" key into SUPABASE_ANON_KEY below.
-
    A NOTE ON THE ANON KEY
    -----------------------
    The anon key is designed to be public — it ships inside every
