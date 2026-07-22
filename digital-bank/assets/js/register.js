@@ -6,7 +6,7 @@
      2. Account type card selection
      3. Password show/hide + strength meter
      4. Review step population
-     5. Submit validation + demo alert
+     5. Submit validation + real API call
    ============================================================= */
 
 const $ = (selector, scope) => (scope || document).querySelector(selector);
@@ -19,16 +19,26 @@ const STEP_LABELS = {
   4: 'Review',
 };
 
-function showAlert(alertBox, message) {
+// Brand gold, sampled from the logo marks already used in register.html.
+const BRAND_SELECTED_COLOR = '#B58A44';
+const BRAND_SELECTED_SHADOW = 'rgba(181, 138, 68, 0.18)';
+
+function showAlert(alertBox, message, tone = 'error') {
   if (!alertBox) return;
   const text = $('.auth-form-alert-text', alertBox);
   if (text) text.textContent = message;
   alertBox.hidden = false;
+  // Belt-and-suspenders: force visibility with inline style too, in case
+  // author CSS (e.g. `.auth-form-alert { display:flex }`) overrides the
+  // browser's default `[hidden]{display:none}` rule.
+  alertBox.style.display = 'flex';
+  alertBox.classList.toggle('auth-form-alert--success', tone === 'success');
 }
 
 function hideAlert(alertBox) {
   if (!alertBox) return;
   alertBox.hidden = true;
+  alertBox.style.display = 'none';
 }
 
 /* -----------------------------------------------------------
@@ -57,7 +67,11 @@ function initWizard() {
 
   function goToStep(targetStep) {
     panels.forEach((panel) => {
-      panel.classList.toggle('is-active', Number(panel.getAttribute('data-panel')) === targetStep);
+      const isActive = Number(panel.getAttribute('data-panel')) === targetStep;
+      panel.classList.toggle('is-active', isActive);
+      // Force it, independent of whatever CSS does (or doesn't) define
+      // for .wizard-panel / .wizard-panel.is-active.
+      panel.style.display = isActive ? '' : 'none';
     });
 
     steps.forEach((step) => {
@@ -72,6 +86,14 @@ function initWizard() {
     if (targetStep === 4) populateReview();
 
     hideAlert(alertBox);
+
+    // Move focus to the panel for accessibility + so screen readers/users
+    // clearly land on the new step.
+    const activePanel = panels.find((p) => Number(p.getAttribute('data-panel')) === targetStep);
+    if (activePanel) {
+      activePanel.setAttribute('tabindex', '-1');
+      activePanel.focus({ preventScroll: false });
+    }
   }
 
   $$('.wizard-next', form).forEach((btn) => {
@@ -136,6 +158,8 @@ function initWizard() {
     return str.charAt(0).toUpperCase() + str.slice(1);
   }
 
+  // Initial state: show step 1, force every other panel hidden and the
+  // alert box hidden, regardless of what CSS says.
   goToStep(1);
 }
 
@@ -146,13 +170,41 @@ function initAccountTypeCards() {
   const cards = $$('.account-type-card');
   if (!cards.length) return;
 
+  function paint(card, selected) {
+    card.classList.toggle('is-selected', selected);
+    // Force the visual state inline so it can't get stuck due to
+    // conflicting/absent CSS rules for .is-selected.
+    if (selected) {
+      card.style.borderColor = BRAND_SELECTED_COLOR;
+      card.style.boxShadow = `0 0 0 3px ${BRAND_SELECTED_SHADOW}`;
+    } else {
+      card.style.borderColor = '';
+      card.style.boxShadow = '';
+    }
+  }
+
+  function syncFromChecked() {
+    cards.forEach((c) => {
+      const input = $('input', c);
+      paint(c, !!(input && input.checked));
+    });
+  }
+
   cards.forEach((card) => {
     const input = $('input', card);
     if (!input) return;
-    input.addEventListener('change', () => {
-      cards.forEach((c) => c.classList.toggle('is-selected', c === card));
+
+    // 'change' handles keyboard + programmatic changes.
+    input.addEventListener('change', syncFromChecked);
+    // Also repaint on click on the card itself, in case focus/selection
+    // timing differs across browsers.
+    card.addEventListener('click', () => {
+      // Let the native radio behavior run first, then repaint.
+      requestAnimationFrame(syncFromChecked);
     });
   });
+
+  syncFromChecked();
 }
 
 /* -----------------------------------------------------------
@@ -193,8 +245,34 @@ function initPasswordStrength() {
 }
 
 /* -----------------------------------------------------------
-   Final submit
+   Collect all wizard data into one payload
    ----------------------------------------------------------- */
+function collectRegistrationData(form) {
+  const accountType = $('input[name="account_type"]:checked', form);
+  const twoFactor = $('input[name="two_factor_method"]:checked', form);
+
+  return {
+    account_type: accountType ? accountType.value : null,
+    first_name: $('#register-first-name', form).value.trim(),
+    last_name: $('#register-last-name', form).value.trim(),
+    email: $('#register-email', form).value.trim(),
+    date_of_birth: $('#register-dob', form).value,
+    phone: $('#register-phone', form).value.trim(),
+    country: $('#register-country', form).value,
+    nationality: $('#register-nationality', form).value.trim(),
+    password: $('#register-password', form).value,
+    two_factor_method: twoFactor ? twoFactor.value : null,
+    marketing_opt_in: $('#register-marketing', form).checked,
+  };
+}
+
+/* -----------------------------------------------------------
+   Final submit — sends data to the backend
+   ----------------------------------------------------------- */
+
+// TODO: point this at your real registration endpoint.
+const REGISTER_ENDPOINT = '/api/register';
+
 function initSubmit() {
   const form = $('#register-form');
   if (!form) return;
@@ -203,7 +281,7 @@ function initSubmit() {
   const termsCheckbox = $('#register-terms');
   const submitBtn = $('.auth-submit-btn', form);
 
-  form.addEventListener('submit', (event) => {
+  form.addEventListener('submit', async (event) => {
     event.preventDefault();
     hideAlert(alertBox);
 
@@ -212,13 +290,44 @@ function initSubmit() {
       return;
     }
 
-    if (submitBtn) submitBtn.classList.add('is-loading');
+    const payload = collectRegistrationData(form);
 
-    // Demo only: no real account is created.
-    window.setTimeout(() => {
-      if (submitBtn) submitBtn.classList.remove('is-loading');
-      showAlert(alertBox, 'This is a demo registration form — no real Meridian account has been created.');
-    }, 900);
+    if (submitBtn) {
+      submitBtn.classList.add('is-loading');
+      submitBtn.disabled = true;
+    }
+
+    try {
+      const response = await fetch(REGISTER_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      let data = null;
+      try {
+        data = await response.json();
+      } catch (_) {
+        // Non-JSON response body — ignore, we still have response.ok/status.
+      }
+
+      if (!response.ok) {
+        const message = (data && (data.message || data.error))
+          || `Something went wrong (status ${response.status}). Please try again.`;
+        showAlert(alertBox, message, 'error');
+        return;
+      }
+
+      showAlert(alertBox, 'Account created — check your email to verify your address.', 'success');
+      form.reset();
+    } catch (err) {
+      showAlert(alertBox, 'We could not reach the server. Check your connection and try again.', 'error');
+    } finally {
+      if (submitBtn) {
+        submitBtn.classList.remove('is-loading');
+        submitBtn.disabled = false;
+      }
+    }
   });
 }
 
