@@ -9,6 +9,9 @@
      5. Submit validation + real API call
    ============================================================= */
 
+import { signUpUser } from '../supabase/auth.js';
+import { createUserProfile } from '../supabase/database.js';
+
 const $ = (selector, scope) => (scope || document).querySelector(selector);
 const $$ = (selector, scope) => Array.from((scope || document).querySelectorAll(selector));
 
@@ -267,12 +270,8 @@ function collectRegistrationData(form) {
 }
 
 /* -----------------------------------------------------------
-   Final submit — sends data to the backend
+   Final submit — creates the auth user, then the profile row
    ----------------------------------------------------------- */
-
-// TODO: point this at your real registration endpoint.
-const REGISTER_ENDPOINT = '/api/register';
-
 function initSubmit() {
   const form = $('#register-form');
   if (!form) return;
@@ -298,30 +297,53 @@ function initSubmit() {
     }
 
     try {
-      const response = await fetch(REGISTER_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      // 1. Create the auth user.
+      const { user: newUser, error: signUpError } = await signUpUser(
+        payload.email,
+        payload.password,
+        { first_name: payload.first_name, last_name: payload.last_name },
+      );
 
-      let data = null;
-      try {
-        data = await response.json();
-      } catch (_) {
-        // Non-JSON response body — ignore, we still have response.ok/status.
-      }
-
-      if (!response.ok) {
-        const message = (data && (data.message || data.error))
-          || `Something went wrong (status ${response.status}). Please try again.`;
-        showAlert(alertBox, message, 'error');
+      if (signUpError) {
+        showAlert(alertBox, signUpError.message, 'error');
         return;
       }
+
+      if (!newUser) {
+        showAlert(alertBox, 'Something went wrong creating your account. Please try again.', 'error');
+        return;
+      }
+
+      // 2. Create the profile row (RLS requires auth.uid() = id, which
+      //    the newly-created session satisfies).
+      const { error: profileError } = await createUserProfile({
+        id: newUser.id,
+        first_name: payload.first_name,
+        last_name: payload.last_name,
+        email: payload.email,
+        phone: payload.phone || null,
+        date_of_birth: payload.date_of_birth || null,
+        nationality: payload.nationality || null,
+        country: payload.country || null,
+        two_factor_method: payload.two_factor_method || 'email',
+        marketing_opt_in: payload.marketing_opt_in,
+      });
+
+      if (profileError) {
+        showAlert(alertBox, `Account created, but saving your profile failed: ${profileError.message}`, 'error');
+        return;
+      }
+
+      // Note: account_type ("personal"/"business") determines what gets
+      // created in `accounts`, which needs a generated account_number,
+      // currency, etc. That's intentionally not done from the client —
+      // it should happen via a database trigger or Edge Function keyed
+      // off this new user_profiles row.
 
       showAlert(alertBox, 'Account created — check your email to verify your address.', 'success');
       form.reset();
     } catch (err) {
-      showAlert(alertBox, 'We could not reach the server. Check your connection and try again.', 'error');
+      showAlert(alertBox, 'We could not reach Supabase. Check your connection and try again.', 'error');
     } finally {
       if (submitBtn) {
         submitBtn.classList.remove('is-loading');
