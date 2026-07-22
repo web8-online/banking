@@ -9,8 +9,8 @@
      5. Submit validation + real API call
    ============================================================= */
 
-import { signUpUser } from '../supabase/auth.js';
-import { createUserProfile } from '../supabase/database.js';
+import { signUpUser, redirectIfAuthenticated } from '../supabase/auth.js';
+import { updateMyProfile } from '../supabase/database.js';
 
 const $ = (selector, scope) => (scope || document).querySelector(selector);
 const $$ = (selector, scope) => Array.from((scope || document).querySelectorAll(selector));
@@ -297,40 +297,41 @@ function initSubmit() {
     }
 
     try {
-      // 1. Create the auth user.
-      const { user: newUser, error: signUpError } = await signUpUser(
-        payload.email,
-        payload.password,
-        { first_name: payload.first_name, last_name: payload.last_name },
-      );
+      // 1. Create the auth user. signUpUser() already inserts a
+      //    user_profiles row with first_name/last_name/email/phone,
+      //    account_status: 'Pending', email_verified: false — see auth.js.
+      const { data: authData, error: signUpError } = await signUpUser({
+        firstName: payload.first_name,
+        lastName: payload.last_name,
+        email: payload.email,
+        password: payload.password,
+        phone: payload.phone,
+      });
 
       if (signUpError) {
-        showAlert(alertBox, signUpError.message, 'error');
+        showAlert(alertBox, signUpError, 'error');
         return;
       }
 
+      const newUser = authData?.user;
       if (!newUser) {
         showAlert(alertBox, 'Something went wrong creating your account. Please try again.', 'error');
         return;
       }
 
-      // 2. Create the profile row (RLS requires auth.uid() = id, which
-      //    the newly-created session satisfies).
-      const { error: profileError } = await createUserProfile({
-        id: newUser.id,
-        first_name: payload.first_name,
-        last_name: payload.last_name,
-        email: payload.email,
-        phone: payload.phone || null,
+      // 2. Fill in the fields this wizard collects that signUpUser()
+      //    doesn't: date of birth, nationality, country, 2FA method,
+      //    marketing opt-in.
+      const { error: profileError } = await updateMyProfile({
         date_of_birth: payload.date_of_birth || null,
         nationality: payload.nationality || null,
         country: payload.country || null,
         two_factor_method: payload.two_factor_method || 'email',
         marketing_opt_in: payload.marketing_opt_in,
-      });
+      }, newUser.id);
 
       if (profileError) {
-        showAlert(alertBox, `Account created, but saving your profile failed: ${profileError.message}`, 'error');
+        showAlert(alertBox, `Account created, but saving some profile details failed: ${profileError}`, 'error');
         return;
       }
 
@@ -352,6 +353,8 @@ function initSubmit() {
     }
   });
 }
+
+redirectIfAuthenticated();
 
 initWizard();
 initAccountTypeCards();
