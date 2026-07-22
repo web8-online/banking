@@ -11,6 +11,14 @@
    Every exported function returns a plain { data, error } object
    (error is null on success) so page scripts never need to catch
    exceptions to handle expected failures like "wrong password".
+
+   requireAuth() IS THE SINGLE SOURCE OF TRUTH for "is this visitor
+   actually signed in" across every authenticated page. Don't add a
+   second implementation of this check elsewhere — supabase/page-guard.js
+   re-exports this same function under the name guardPage() for pages
+   that were written against that name, rather than duplicating the
+   logic. If you find a page with its own inline version of this
+   check, replace it with an import from here (or from page-guard.js).
    ============================================================= */
 
 import { supabase, ROUTES } from './config.js';
@@ -60,6 +68,33 @@ function friendlyAuthError(error) {
     return 'Your password needs to be at least 8 characters long.';
   }
   return message;
+}
+
+/**
+ * Reveals a page that was hidden while auth was being confirmed —
+ * see assets/js/auth-guard.js for the fast pre-check that hides it
+ * in the first place. Supports both patterns currently in use
+ * across the app, so requireAuth() works correctly no matter which
+ * one a given page's markup uses:
+ *
+ *   <body class="app-body auth-pending">              (accounts.html)
+ *   <body class="app-body" data-auth="pending"> + .auth-loader   (settings.html)
+ *
+ * Safe to call even if neither pattern is present, and safe to
+ * call more than once (e.g. if a page also removes the class
+ * itself at the end of its own init()) — later calls are no-ops.
+ */
+function revealPage() {
+  if (typeof document === 'undefined' || !document.body) return;
+
+  document.body.classList.remove('auth-pending');
+
+  if (document.body.dataset.auth !== undefined) {
+    document.body.dataset.auth = 'ready';
+  }
+
+  const loader = document.querySelector('.auth-loader');
+  if (loader) loader.setAttribute('hidden', '');
 }
 
 /* -----------------------------------------------------------
@@ -182,17 +217,37 @@ export function onAuthStateChange(callback) {
    ----------------------------------------------------------- */
 
 /**
- * Use on protected pages (dashboard, accounts, transfers, etc.).
- * Redirects to login.html if there's no active session.
- * Returns the current user on success, or null after redirecting.
+ * THE single, server-validated auth check for every protected page.
+ * Use at the very top of a page's module script, before touching
+ * any account data:
+ *
+ *   const user = await requireAuth();
+ *   if (!user) return; // already redirected to login.html
+ *
+ * On success, also reveals the page (see revealPage() above) — so
+ * for most pages that's the only auth-related call you need. If a
+ * page's own init() also removes its hidden-state class/attribute
+ * afterwards, that's harmless; this just makes it not strictly
+ * required.
+ *
+ * Redirects to login.html if there's no active session, preserving
+ * the current path as ?next= so login.html can send the visitor
+ * back after signing in.
  */
 export async function requireAuth() {
   const { data: session } = await getCurrentSession();
   if (!session) {
-    window.location.href = ROUTES.login;
+    const next = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.href = `${ROUTES.login}?next=${next}`;
     return null;
   }
   const { data: user } = await getCurrentUser();
+  if (!user) {
+    const next = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.href = `${ROUTES.login}?next=${next}`;
+    return null;
+  }
+  revealPage();
   return user;
 }
 
