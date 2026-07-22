@@ -8,8 +8,10 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/dashboard.css">
+<link rel="stylesheet" href="../assets/css/transactions.css">
 </head>
-<body class="app-body">
+<body class="app-body auth-pending">
 
 <a class="skip-link" href="#main-content">Skip to main content</a>
 
@@ -42,13 +44,13 @@
       </button>
       <button class="app-icon-btn" aria-label="Notifications">
         <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 8a5 5 0 0 1 10 0c0 4 1.5 5 1.5 5h-13S5 12 5 8Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8.2 15.5a1.8 1.8 0 0 0 3.6 0" stroke="currentColor" stroke-width="1.4"/></svg>
-        <span class="app-icon-btn-badge">2</span>
+        <span class="app-icon-btn-badge" hidden>0</span>
       </button>
 
       <div class="app-user-menu">
         <button class="app-user-trigger" aria-haspopup="true" aria-expanded="false">
-          <span class="avatar-initial avatar-initial--sm">A</span>
-          <span class="app-user-name">Amara Okafor</span>
+          <span class="avatar-initial avatar-initial--sm">–</span>
+          <span class="app-user-name">Account</span>
           <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
         <div class="app-user-dropdown" role="menu">
@@ -72,31 +74,31 @@
         <h1>Transactions</h1>
         <p>Every payment, transfer, and charge across all your Meridian balances.</p>
       </div>
-      <button type="button" class="btn btn-ghost">
+      <button type="button" class="btn btn-ghost" id="tx-export-btn">
         <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 2v9M4.5 7.5 8 11l3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 13.5h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        Export
+        Export CSV
       </button>
     </div>
 
     <!-- =========================================================
          SUMMARY STRIP
          ========================================================= -->
-    <div class="grid tx-summary-grid">
+    <div class="grid tx-summary-grid" id="tx-summary-grid" aria-live="polite">
       <div class="tx-summary-card">
         <span class="tx-summary-label">Money in — this month</span>
-        <span class="tx-summary-value amt pos">+$6,240.00</span>
+        <span class="tx-summary-value amt pos skeleton" id="tx-summary-in">Loading…</span>
       </div>
       <div class="tx-summary-card">
         <span class="tx-summary-label">Money out — this month</span>
-        <span class="tx-summary-value amt">-$3,918.40</span>
+        <span class="tx-summary-value amt skeleton" id="tx-summary-out">Loading…</span>
       </div>
       <div class="tx-summary-card">
         <span class="tx-summary-label">Net change</span>
-        <span class="tx-summary-value amt pos">+$2,321.60</span>
+        <span class="tx-summary-value amt skeleton" id="tx-summary-net">Loading…</span>
       </div>
       <div class="tx-summary-card">
         <span class="tx-summary-label">Pending</span>
-        <span class="tx-summary-value">2 transactions</span>
+        <span class="tx-summary-value skeleton" id="tx-summary-pending">Loading…</span>
       </div>
     </div>
 
@@ -111,6 +113,11 @@
       </div>
 
       <div class="tx-filter-group">
+        <label for="tx-filter-account" class="sr-only">Filter by account</label>
+        <select id="tx-filter-account">
+          <option value="all" selected>All accounts</option>
+        </select>
+
         <label for="tx-filter-type" class="sr-only">Filter by type</label>
         <select id="tx-filter-type">
           <option value="all" selected>All types</option>
@@ -124,24 +131,23 @@
         <label for="tx-filter-status" class="sr-only">Filter by status</label>
         <select id="tx-filter-status">
           <option value="all" selected>All statuses</option>
-          <option value="completed">Completed</option>
-          <option value="pending">Pending</option>
-          <option value="failed">Failed</option>
+          <option value="Completed">Completed</option>
+          <option value="Processing">Processing</option>
+          <option value="Pending">Pending</option>
+          <option value="Failed">Failed</option>
         </select>
 
         <label for="tx-filter-currency" class="sr-only">Filter by currency</label>
         <select id="tx-filter-currency">
           <option value="all" selected>All currencies</option>
-          <option value="USD">USD</option>
-          <option value="EUR">EUR</option>
-          <option value="GBP">GBP</option>
-          <option value="SGD">SGD</option>
         </select>
 
         <label for="tx-filter-from" class="sr-only">From date</label>
         <input type="date" id="tx-filter-from" aria-label="From date">
         <label for="tx-filter-to" class="sr-only">To date</label>
         <input type="date" id="tx-filter-to" aria-label="To date">
+
+        <button type="button" class="btn btn-ghost btn-sm" id="tx-filter-reset">Reset</button>
       </div>
     </div>
 
@@ -150,152 +156,55 @@
       <!-- =========================================================
            TRANSACTION LIST
            ========================================================= -->
-      <div class="tx-list-wrap">
+      <div class="profile-card tx-list-wrap">
 
-        <div class="tx-day-group">
-          <h2 class="tx-day-heading">Today</h2>
-          <ul class="tx-list">
-            <li class="tx-row" data-tx="ref-mn-002481">
-              <span class="tx-icon tx-icon--in">
-                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 17V3M4 9l6-6 6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </span>
-              <div class="tx-row-main">
-                <strong>Client payment — Berlin</strong>
-                <span>Transfer received · Ref MN-002481</span>
-              </div>
-              <span class="tag">Transfer</span>
-              <span class="status-pill status-pill--verified">Completed</span>
-              <span class="amt pos">+€2,140.00</span>
-              <time>9:12 AM</time>
-            </li>
-            <li class="tx-row" data-tx="ref-mn-002480">
-              <span class="tx-icon tx-icon--out">
-                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="3" y="6" width="14" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/></svg>
-              </span>
-              <div class="tx-row-main">
-                <strong>Studio Nord — Design</strong>
-                <span>Card payment · Ref MN-002480</span>
-              </div>
-              <span class="tag">Card</span>
-              <span class="status-pill status-pill--verified">Completed</span>
-              <span class="amt">-$340.00</span>
-              <time>8:47 AM</time>
-            </li>
-          </ul>
+        <div id="tx-list-body">
+          <!-- skeleton rows shown until first load resolves -->
+          <div class="tx-day-group" data-skeleton>
+            <div class="tx-day-heading skeleton" style="width:90px;height:14px;"></div>
+            <ul class="tx-list">
+              <li class="tx-row tx-row--skeleton">
+                <span class="tx-icon skeleton"></span>
+                <div class="tx-row-main">
+                  <strong class="skeleton" style="width:60%;height:14px;display:block;margin-bottom:6px;"></strong>
+                  <span class="skeleton" style="width:40%;height:11px;display:block;"></span>
+                </div>
+                <span class="skeleton" style="width:64px;height:20px;border-radius:999px;"></span>
+                <span class="skeleton" style="width:80px;height:20px;border-radius:999px;"></span>
+                <span class="skeleton" style="width:70px;height:14px;"></span>
+                <span class="skeleton" style="width:50px;height:12px;"></span>
+              </li>
+              <li class="tx-row tx-row--skeleton">
+                <span class="tx-icon skeleton"></span>
+                <div class="tx-row-main">
+                  <strong class="skeleton" style="width:50%;height:14px;display:block;margin-bottom:6px;"></strong>
+                  <span class="skeleton" style="width:35%;height:11px;display:block;"></span>
+                </div>
+                <span class="skeleton" style="width:64px;height:20px;border-radius:999px;"></span>
+                <span class="skeleton" style="width:80px;height:20px;border-radius:999px;"></span>
+                <span class="skeleton" style="width:70px;height:14px;"></span>
+                <span class="skeleton" style="width:50px;height:12px;"></span>
+              </li>
+            </ul>
+          </div>
         </div>
 
-        <div class="tx-day-group">
-          <h2 class="tx-day-heading">Yesterday</h2>
-          <ul class="tx-list">
-            <li class="tx-row" data-tx="ref-mn-002462">
-              <span class="tx-icon tx-icon--out">
-                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="6.5" stroke="currentColor" stroke-width="1.4"/></svg>
-              </span>
-              <div class="tx-row-main">
-                <strong>Savings pot — Tokyo trip</strong>
-                <span>Internal transfer · Ref MN-002462</span>
-              </div>
-              <span class="tag">Transfer</span>
-              <span class="status-pill status-pill--verified">Completed</span>
-              <span class="amt">-$120.00</span>
-              <time>6:03 PM</time>
-            </li>
-            <li class="tx-row" data-tx="ref-mn-002455">
-              <span class="tx-icon tx-icon--in">
-                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 3v14M4 9l6-6 6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </span>
-              <div class="tx-row-main">
-                <strong>Payroll — Singapore</strong>
-                <span>Transfer received · Ref MN-002455</span>
-              </div>
-              <span class="tag">Transfer</span>
-              <span class="status-pill status-pill--verified">Completed</span>
-              <span class="amt pos">+S$1,860.00</span>
-              <time>10:15 AM</time>
-            </li>
-            <li class="tx-row" data-tx="ref-mn-002451">
-              <span class="tx-icon tx-icon--out">
-                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10.5 8 14l8-8.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </span>
-              <div class="tx-row-main">
-                <strong>International transfer fee</strong>
-                <span>Fee · Ref MN-002451</span>
-              </div>
-              <span class="tag">Fee</span>
-              <span class="status-pill status-pill--pending">Pending</span>
-              <span class="amt">-$4.20</span>
-              <time>10:15 AM</time>
-            </li>
-          </ul>
-        </div>
-
-        <div class="tx-day-group">
-          <h2 class="tx-day-heading">This week</h2>
-          <ul class="tx-list">
-            <li class="tx-row" data-tx="ref-mn-002398">
-              <span class="tx-icon tx-icon--out">
-                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="3" y="6" width="14" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/></svg>
-              </span>
-              <div class="tx-row-main">
-                <strong>Cloud hosting — AWS</strong>
-                <span>Card payment · Ref MN-002398</span>
-              </div>
-              <span class="tag">Card</span>
-              <span class="status-pill status-pill--danger">Failed</span>
-              <span class="amt">-$89.00</span>
-              <time>Mon, 7:02 AM</time>
-            </li>
-            <li class="tx-row" data-tx="ref-mn-002377">
-              <span class="tx-icon tx-icon--in">
-                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 3v14M4 9l6-6 6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </span>
-              <div class="tx-row-main">
-                <strong>Refund — Studio Nord</strong>
-                <span>Transfer received · Ref MN-002377</span>
-              </div>
-              <span class="tag">Transfer</span>
-              <span class="status-pill status-pill--verified">Completed</span>
-              <span class="amt pos">+$60.00</span>
-              <time>Mon, 2:34 PM</time>
-            </li>
-          </ul>
-        </div>
+        <p class="tx-list-count" id="tx-list-count"></p>
 
         <div class="tx-load-more">
-          <button type="button" class="btn btn-ghost">Load more transactions</button>
+          <button type="button" class="btn btn-ghost" id="tx-load-more-btn" hidden>Load more transactions</button>
         </div>
       </div>
 
       <!-- =========================================================
            TRANSACTION DETAIL PANEL
-           (populated on row click; first row's detail shown by default)
            ========================================================= -->
-      <aside class="tx-detail-panel" aria-label="Transaction detail">
-        <div class="tx-detail-head">
-          <span class="tx-icon tx-icon--in">
-            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 17V3M4 9l6-6 6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </span>
-          <div>
-            <strong>Client payment — Berlin</strong>
-            <span class="status-pill status-pill--verified">Completed</span>
-          </div>
-        </div>
-
-        <div class="tx-detail-amount amt pos">+€2,140.00</div>
-
-        <dl class="tx-detail-list">
-          <div><dt>Reference</dt><dd>MN-002481</dd></div>
-          <div><dt>Type</dt><dd>Transfer received</dd></div>
-          <div><dt>From</dt><dd>Studio Nord GmbH</dd></div>
-          <div><dt>To account</dt><dd>Meridian EUR account ····4821</dd></div>
-          <div><dt>Fee</dt><dd>€0.00</dd></div>
-          <div><dt>Date</dt><dd>Jul 21, 2026, 9:12 AM</dd></div>
-          <div><dt>Description</dt><dd>Invoice #2026-014</dd></div>
-        </dl>
-
-        <div class="tx-detail-actions">
-          <button type="button" class="btn btn-ghost btn-block">Download receipt</button>
-          <button type="button" class="btn btn-ghost btn-block">Report a problem</button>
+      <aside class="profile-card tx-detail-panel" id="tx-detail-panel" aria-label="Transaction detail">
+        <button type="button" class="modal-close tx-detail-close" id="tx-detail-close" aria-label="Close transaction detail">
+          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+        <div id="tx-detail-content" class="tx-detail-empty">
+          <p>Select a transaction to see the full details here.</p>
         </div>
       </aside>
 
@@ -303,6 +212,10 @@
   </div>
 </main>
 
-<script src="../assets/js/main.js"></script>
+<div class="tx-detail-scrim" id="tx-detail-scrim" hidden></div>
+
+<div class="toast-stack" id="toast-stack"></div>
+
+<script type="module" src="transactions.js"></script>
 </body>
 </html>
