@@ -174,7 +174,7 @@ export async function getMyBeneficiaries(userId) {
   );
 }
 
-export async function addBeneficiary({ beneficiaryName, bankName, accountNumber, swiftCode, country, userId }) {
+export async function addBeneficiary({ beneficiaryName, bankName, accountNumber, swiftCode, country, currency = 'USD', userId }) {
   const uid = await resolveUserId(userId);
   if (!uid) return { data: null, error: 'Not signed in.' };
   return wrap(
@@ -187,6 +187,7 @@ export async function addBeneficiary({ beneficiaryName, bankName, accountNumber,
         account_number: accountNumber,
         swift_code: swiftCode,
         country,
+        currency,
       })
       .select()
       .single()
@@ -278,63 +279,31 @@ export async function getTransactionByReference(reference) {
 }
 
 /**
- * Creates an international/internal transfer.
- *
- * IMPORTANT — this is a demo-friendly client-side implementation
- * (insert transaction row, then two balance updates). It is NOT
- * atomic: a failure between the two `accounts` updates can leave
- * balances inconsistent, and concurrent transfers can race each
- * other. For production, replace the balance-update calls below
- * with a single `supabase.rpc('process_transfer', {...})` call to
- * a Postgres function that does the debit, credit, and transaction
- * insert inside one transaction block.
+ * Creates an international/internal transfer via the process_transfer
+ * Postgres function (see 006_process_transfer_rpc.sql). That function
+ * runs as SECURITY DEFINER — it manually checks you own the sender
+ * account (RLS is bypassed inside it, so it enforces that itself),
+ * then does the debit, the receiver credit (if any), and the
+ * transaction insert as one atomic operation. This replaced an
+ * earlier client-side version that updated `accounts` directly in
+ * two separate calls: crediting the receiver required reading their
+ * account first, which RLS correctly blocks for a different user, and
+ * the old code silently swallowed that error instead of failing —
+ * meaning the sender was debited but the receiver was never credited,
+ * with nothing surfaced to say so.
  */
 export async function createTransfer({ senderAccountId, receiverAccountId, amount, fee = 0, currency, description }) {
-  const reference = `MN-${Math.floor(100000 + Math.random() * 899999)}`;
+  const { data, error } = await supabase.rpc('process_transfer', {
+    p_sender_account_id: senderAccountId,
+    p_receiver_account_id: receiverAccountId || null,
+    p_amount: amount,
+    p_fee: fee,
+    p_currency: currency,
+    p_description: description,
+  });
 
-  const { data: sender, error: senderError } = await getAccountById(senderAccountId);
-  if (senderError || !sender) return { data: null, error: senderError || 'Sender account not found.' };
-
-  const totalDebit = Number(amount) + Number(fee);
-  if (Number(sender.available_balance) < totalDebit) {
-    return { data: null, error: 'Insufficient funds for this transfer.' };
-  }
-
-  const { data: transaction, error: txError } = await wrap(
-    supabase
-      .from('transactions')
-      .insert({
-        sender_account: senderAccountId,
-        receiver_account: receiverAccountId,
-        transaction_reference: reference,
-        transaction_type: 'transfer',
-        amount,
-        fee,
-        currency,
-        description,
-        status: 'Processing',
-      })
-      .select()
-      .single()
-  );
-  if (txError) return { data: null, error: txError };
-
-  await supabase
-    .from('accounts')
-    .update({ balance: Number(sender.balance) - totalDebit, available_balance: Number(sender.available_balance) - totalDebit })
-    .eq('id', senderAccountId);
-
-  if (receiverAccountId) {
-    const { data: receiver } = await getAccountById(receiverAccountId);
-    if (receiver) {
-      await supabase
-        .from('accounts')
-        .update({ balance: Number(receiver.balance) + Number(amount), available_balance: Number(receiver.available_balance) + Number(amount) })
-        .eq('id', receiverAccountId);
-    }
-  }
-
-  return { data: transaction, error: null };
+  if (error) return { data: null, error: error.message };
+  return { data, error: null };
 }
 
 /* -----------------------------------------------------------
