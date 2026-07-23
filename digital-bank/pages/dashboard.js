@@ -13,6 +13,12 @@
         and card preview — all scoped to the user's primary
         (first-opened) account. See the note above
         renderPrimaryAccountSections() for why.
+     8. Live crypto ticker (band under the header)
+     9. "Market pulse" panel — live crypto prices + finance
+        headlines, with an honestly-labelled fallback if either
+        feed is unreachable (never fakes "live" data)
+    10. Automation showcase — animates a real stat (total saved
+        across the user's goals) into the sidebar upsell card
    ============================================================= */
 
 import { guardPage } from '../supabase/page-guard.js';
@@ -75,6 +81,16 @@ function emptyStateNote(container, message) {
   if (!container) return;
   container.classList.remove('skeleton');
   container.innerHTML = `<p style="font-size:0.88rem;">${message}</p>`;
+}
+
+/** Small text/attribute escaper — the ticker and news panel both
+ *  inject third-party strings (coin names, headline titles) into
+ *  innerHTML, so anything that isn't already trusted local markup
+ *  goes through this first. */
+function esc(str) {
+  return String(str ?? '').replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
 }
 
 /* -----------------------------------------------------------
@@ -489,6 +505,201 @@ async function renderPrimaryAccountSections(accounts) {
   ]);
 }
 
+/* =============================================================
+   LIVE CRYPTO TICKER
+   Populates the .ticker-band already in dashboard.html (the same
+   component the marketing homepage uses) with real prices from
+   CoinGecko's public, key-free endpoint. Refreshes on an interval
+   so the band stays "live" while the dashboard is open.
+   ============================================================= */
+const TICKER_COINS = [
+  { id: 'bitcoin', symbol: 'BTC' },
+  { id: 'ethereum', symbol: 'ETH' },
+  { id: 'solana', symbol: 'SOL' },
+  { id: 'ripple', symbol: 'XRP' },
+  { id: 'cardano', symbol: 'ADA' },
+  { id: 'dogecoin', symbol: 'DOGE' },
+];
+const TICKER_REFRESH_MS = 90_000;
+
+async function fetchCryptoPrices() {
+  const ids = TICKER_COINS.map((c) => c.id).join(',');
+  const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`CoinGecko ${res.status}`);
+  return res.json();
+}
+
+function tickerItemMarkup(symbol, price, change) {
+  const isUp = change >= 0;
+  const priceStr = price >= 1
+    ? price.toLocaleString('en-US', { maximumFractionDigits: 2, minimumFractionDigits: 2 })
+    : price.toLocaleString('en-US', { maximumFractionDigits: 4 });
+  return `
+    <div class="ticker-item">
+      <span class="pair">${esc(symbol)}/USD</span>
+      <span class="mono">$${priceStr}</span>
+      <span class="delta ${isUp ? 'pos' : 'neg'}">${isUp ? '▲' : '▼'} ${Math.abs(change).toFixed(2)}%</span>
+    </div>
+  `;
+}
+
+async function initDashboardTicker() {
+  const track = $('#dashboard-ticker-track');
+  if (!track) return;
+
+  async function refresh() {
+    try {
+      const prices = await fetchCryptoPrices();
+      const itemsHtml = TICKER_COINS
+        .filter((c) => prices[c.id])
+        .map((c) => tickerItemMarkup(c.symbol, prices[c.id].usd, prices[c.id].usd_24h_change || 0))
+        .join('');
+      // Duplicated once so the CSS marquee (if it scrolls the track's
+      // full width) loops seamlessly instead of snapping at the end.
+      track.innerHTML = itemsHtml + itemsHtml;
+    } catch (err) {
+      track.innerHTML = '<div class="ticker-item"><span class="pair">Market data unavailable right now</span></div>';
+    }
+  }
+
+  await refresh();
+  setInterval(refresh, TICKER_REFRESH_MS);
+}
+
+/* =============================================================
+   MARKET PULSE PANEL
+   A new card injected into the main column: live crypto prices
+   at a glance plus a small finance-headlines feed. If the news
+   feed can't be reached, the panel honestly relabels itself
+   "Insights" and shows evergreen tips instead of pretending
+   stale content is live — never fakes a live feed.
+   ============================================================= */
+async function fetchFinanceHeadlines() {
+  const rssUrl = encodeURIComponent('https://www.cnbc.com/id/10001147/device/rss/rss.html');
+  const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${rssUrl}&count=4`);
+  if (!res.ok) throw new Error(`rss2json ${res.status}`);
+  const data = await res.json();
+  if (data.status !== 'ok' || !data.items?.length) throw new Error('empty feed');
+  return data.items.slice(0, 4).map((item) => ({
+    title: item.title,
+    link: item.link,
+    source: 'CNBC Finance',
+  }));
+}
+
+const FALLBACK_INSIGHTS = [
+  { title: 'Automating a fixed transfer the day you get paid is the single easiest way to make saving stick.' },
+  { title: 'Splitting savings into named goals (a trip, an emergency fund) tends to keep money there longer than one generic pot.' },
+  { title: 'Reviewing recurring subscriptions once a quarter is a quick way to catch spend creep.' },
+  { title: 'Keeping 1–2 months of expenses in an easy-access account covers most short-notice costs without touching savings goals.' },
+];
+
+function renderMarketNewsCard(container, items, isLive) {
+  const heading = isLive ? 'Market pulse' : 'Insights';
+  const sub = isLive ? 'Live headlines' : 'Shown while live headlines are unavailable';
+
+  container.innerHTML = `
+    <div class="profile-card-head">
+      <h3>
+        ${isLive ? '<span class="live-dot" aria-hidden="true"></span>' : ''}
+        ${heading}
+      </h3>
+      <span class="tx-summary-label">${sub}</span>
+    </div>
+    <ul class="market-news-list">
+      ${items.map((item) => `
+        <li class="news-item">
+          ${item.link
+            ? `<a href="${esc(item.link)}" target="_blank" rel="noopener noreferrer">${esc(item.title)}</a>`
+            : `<span>${esc(item.title)}</span>`}
+          ${item.source ? `<span class="news-item-source">${esc(item.source)}</span>` : ''}
+        </li>
+      `).join('')}
+    </ul>
+  `;
+}
+
+async function initMarketNewsPanel() {
+  const mainCol = $('.dashboard-main-col');
+  const balanceCard = $('.dashboard-balance-card');
+  if (!mainCol || !balanceCard) return;
+
+  const section = document.createElement('section');
+  section.className = 'profile-card market-news-card';
+  section.innerHTML = `
+    <div class="profile-card-head">
+      <h3><span class="live-dot" aria-hidden="true"></span> Market pulse</h3>
+      <span class="tx-summary-label">Loading…</span>
+    </div>
+    <ul class="market-news-list">
+      <li class="news-item skeleton" style="height:1.1rem;"></li>
+      <li class="news-item skeleton" style="height:1.1rem;"></li>
+      <li class="news-item skeleton" style="height:1.1rem;"></li>
+    </ul>
+  `;
+  balanceCard.insertAdjacentElement('afterend', section);
+
+  try {
+    const headlines = await fetchFinanceHeadlines();
+    renderMarketNewsCard(section, headlines, true);
+  } catch (err) {
+    renderMarketNewsCard(section, FALLBACK_INSIGHTS, false);
+  }
+}
+
+/* =============================================================
+   AUTOMATION SHOWCASE
+   Enhances the existing "Automate your money" upsell card with a
+   real, animated stat pulled from the user's own savings goals —
+   total currently automated and how many goals it's spread
+   across — instead of a generic static pitch.
+   ============================================================= */
+function animateCount(el, target, { prefix = '', duration = 1100 } = {}) {
+  if (!el) return;
+  const start = performance.now();
+  const from = 0;
+  function tick(now) {
+    const progress = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+    const value = from + (target - from) * eased;
+    el.textContent = `${prefix}${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+    if (progress < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+async function enhanceAutomationShowcase(accountId) {
+  const upsell = $('.dashboard-upsell');
+  if (!upsell) return;
+
+  const statRow = document.createElement('div');
+  statRow.className = 'automation-stat-row';
+  const actions = $('.automation-card-actions', upsell);
+  if (actions) upsell.insertBefore(statRow, actions);
+  else upsell.appendChild(statRow);
+
+  if (!accountId) {
+    statRow.innerHTML = `<p class="automation-stat-empty">Open an account to start automating your savings.</p>`;
+    return;
+  }
+
+  const { data: goals } = await getSavingsGoals(accountId);
+
+  if (!goals?.length) {
+    statRow.innerHTML = `<p class="automation-stat-empty">You're not automating any savings yet — start your first goal below.</p>`;
+    return;
+  }
+
+  const total = goals.reduce((sum, g) => sum + (Number(g.current_amount) || 0), 0);
+
+  statRow.innerHTML = `
+    <span class="automation-stat-value mono" id="automation-stat-value">0</span>
+    <span class="automation-stat-label">saved automatically across ${goals.length} goal${goals.length === 1 ? '' : 's'}</span>
+  `;
+  animateCount($('#automation-stat-value', statRow), total, { prefix: '$' });
+}
+
 /* -----------------------------------------------------------
    Init
    ----------------------------------------------------------- */
@@ -503,10 +714,13 @@ async function renderPrimaryAccountSections(accounts) {
   initUserMenu();
   initMobileNav();
   initLogout();
+  initDashboardTicker();
+  initMarketNewsPanel();
 
   const { data: accounts, error } = await getMyAccounts(user.id);
   if (error) showToast("Couldn't load your accounts. Please refresh.");
 
   await renderBalanceAndAccounts(accounts || []);
   await renderPrimaryAccountSections(accounts || []);
+  await enhanceAutomationShowcase(accounts?.[0]?.id);
 })();
