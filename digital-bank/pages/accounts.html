@@ -155,8 +155,13 @@
 
 <!-- =========================================================
      ACCOUNT DETAILS MODAL
+     Visible by default — no aria-hidden, so it is not
+     suppressed by CSS rules keyed off that attribute
+     (e.g. `[aria-hidden="true"] { display: none }`).
+     Toggle logic in accounts.js should still control open/close,
+     but the element itself no longer starts hidden.
      ========================================================= -->
-<div class="modal-overlay" id="account-details-modal" aria-hidden="true">
+<div class="modal-overlay" id="account-details-modal">
   <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="account-details-title">
     <div class="modal-head">
       <div>
