@@ -22,6 +22,8 @@
      10. Toasts
      11. Skeleton / loading states
      12. Responsive breakpoints
+     13. Live ticker deltas, market pulse panel, automation
+         showcase stat (dashboard liveliness pass)
    ============================================================= */
 
 /* -------------------------------------------------------------
@@ -472,6 +474,9 @@ body.app-body.auth-pending {
 
 .profile-card-head h3 {
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .profile-card-desc {
@@ -1749,5 +1754,147 @@ body.app-body.auth-pending {
   }
   .quick-action {
     width: 62px;
+  }
+}
+
+/* -------------------------------------------------------------
+   13. Live ticker deltas, market pulse panel, automation
+       showcase stat — dashboard liveliness pass.
+   ------------------------------------------------------------- */
+
+/* Ticker band items are built by initDashboardTicker() in
+   dashboard.js; .ticker-band/.ticker-track/.ticker-item already
+   exist in style.css, these just style the parts that script adds. */
+.ticker-item .delta {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  margin-left: 0.5rem;
+}
+
+.ticker-item .delta.pos {
+  color: var(--green);
+}
+
+.ticker-item .delta.neg {
+  color: var(--red);
+}
+
+.ticker-item .mono {
+  margin-left: 0.35rem;
+  opacity: 0.85;
+}
+
+/* Small pulsing dot used as a "this is live" signal — on the
+   market-pulse card heading, matched in tone to the rest of the
+   status-pill / badge language already used across the app. */
+.live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 0 rgba(58, 143, 90, 0.55);
+  animation: live-dot-pulse 2s ease-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes live-dot-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(58, 143, 90, 0.55); }
+  70% { box-shadow: 0 0 0 7px rgba(58, 143, 90, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(58, 143, 90, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-dot {
+    animation: none;
+  }
+}
+
+/* Market pulse / insights card — injected by
+   initMarketNewsPanel() right after the balance card. */
+.market-news-card .profile-card-head {
+  margin-bottom: 0.9rem;
+}
+
+.market-news-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.news-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 0.7rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.news-item:last-child {
+  border-bottom: none;
+}
+
+.news-item a {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--ink);
+  transition: color 0.15s ease;
+  min-width: 0;
+}
+
+.news-item a:hover {
+  color: var(--brass-dark);
+}
+
+.news-item span:not(.news-item-source) {
+  font-size: 0.88rem;
+  color: var(--slate-dark);
+}
+
+.news-item-source {
+  flex-shrink: 0;
+  font-size: 0.74rem;
+  color: var(--slate);
+  white-space: nowrap;
+}
+
+/* Automation showcase stat — injected into .dashboard-upsell by
+   enhanceAutomationShowcase(), above the existing action buttons. */
+.automation-stat-row {
+  background: rgba(10, 22, 40, 0.08);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.1rem;
+  margin-bottom: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.automation-stat-value {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.1;
+}
+
+.automation-stat-label {
+  font-size: 0.8rem;
+  color: rgba(10, 22, 40, 0.72);
+}
+
+.automation-stat-empty {
+  font-size: 0.85rem;
+  color: rgba(10, 22, 40, 0.72);
+  margin-bottom: 1.4rem;
+}
+
+@media (max-width: 720px) {
+  .news-item {
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+  .automation-stat-value {
+    font-size: 1.45rem;
   }
 }
