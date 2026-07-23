@@ -803,6 +803,20 @@ body.app-body.auth-pending {
   background: var(--ink-3);
 }
 
+/* Ghost button on the brass gradient needs its own contrast pass —
+   the default .btn-ghost (transparent bg, --line border, --ink
+   text) was designed for the paper background, not brass-on-brass. */
+.dashboard-upsell .btn-ghost {
+  border-color: rgba(10, 22, 40, 0.3);
+  color: var(--ink);
+  background: transparent;
+}
+
+.dashboard-upsell .btn-ghost:hover {
+  border-color: var(--ink);
+  background: rgba(10, 22, 40, 0.08);
+}
+
 /* -------------------------------------------------------------
    7. Profile page
    ------------------------------------------------------------- */
@@ -1889,6 +1903,91 @@ body.app-body.auth-pending {
   margin-bottom: 1.4rem;
 }
 
+/* Account → Auto-save → Goal flow diagram inside the "Automate
+   your money" upsell card. Markup: .automation-flow wraps three
+   .automation-node blocks (icon circle + label) connected by two
+   .automation-track segments, each carrying an .automation-dot
+   that travels along it to suggest money moving through the
+   pipeline. Previously unstyled — rendered as three bare icons
+   and a label stacked with no relationship between them. */
+.automation-flow {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.automation-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.automation-node svg {
+  width: 20px;
+  height: 20px;
+  color: var(--ink);
+  background: rgba(10, 22, 40, 0.1);
+  border-radius: 50%;
+  padding: 0.6rem;
+  box-sizing: content-box;
+}
+
+.automation-node-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(10, 22, 40, 0.72);
+  white-space: nowrap;
+}
+
+.automation-track {
+  position: relative;
+  flex: 1;
+  height: 2px;
+  min-width: 24px;
+  margin: 0 0.5rem 1.4rem; /* pulled up to align with the icon circles, not the labels below them */
+  background-image: linear-gradient(to right, rgba(10, 22, 40, 0.3) 0 6px, transparent 6px 12px);
+  background-size: 12px 2px;
+  background-repeat: repeat-x;
+}
+
+.automation-dot {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink);
+  transform: translate(-50%, -50%);
+  animation: automation-dot-travel 2.2s ease-in-out infinite;
+}
+
+@keyframes automation-dot-travel {
+  0% { left: 0; opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .automation-dot {
+    animation: none;
+    left: 50%;
+    opacity: 1;
+  }
+}
+
+/* Two stacked CTAs beneath the flow diagram — needs its own gap
+   since .dashboard-upsell only spaces its direct <p>/h3 children,
+   not the buttons that come after the flow diagram. */
+.automation-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
 @media (max-width: 720px) {
   .news-item {
     flex-direction: column;
@@ -1896,5 +1995,16 @@ body.app-body.auth-pending {
   }
   .automation-stat-value {
     font-size: 1.45rem;
+  }
+  .automation-node svg {
+    width: 16px;
+    height: 16px;
+    padding: 0.5rem;
+  }
+  .automation-node-label {
+    font-size: 0.66rem;
+  }
+  .automation-track {
+    margin: 0 0.35rem 1.25rem;
   }
 }
