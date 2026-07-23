@@ -1,179 +1,619 @@
 /* =============================================================
-   MERIDIAN — Transfer page
+   MERIDIAN — International Digital Banking
    Stylesheet: assets/css/transfer.css
-   SCOPE: pages/transfer.html only.
-   Load order: style.css → dashboard.css → transfer.css
-   (reuses .tab-toggle, .field, .btn, .modal-overlay/.modal-card,
-   .form-row-2 from dashboard.css & style.css — only the two-column
-   layout, summary card, and amount input are new here.)
+   SCOPE: transfer.html only. Loaded after dashboard.css, which
+          already provides the app shell, header, .tab-toggle,
+          .account-strip, .auth-methods/.auth-method-btn,
+          .field-label-static, .wizard-edit-link, .toast-stack,
+          and .skeleton that this page reuses.
+
+   Load order on transfer.html:
+     1. style.css        (tokens, reset, buttons, .field, .converter-*)
+     2. dashboard.css     (app shell, shared widgets)
+     3. transfer.css      (this file)
+
+   Contents:
+     1. Page head + step indicator
+     2. Transfer card + wizard panels
+     3. Recipient step — recent strip, search, beneficiary cards
+     4. Recipient step — new-recipient lookup + verified card
+     5. Radio-style auth-method buttons (speed / schedule)
+     6. Fee breakdown + balance note
+     7. Review step
+     8. Success step
+     9. Small overrides on shared classes
+     10. Responsive
    ============================================================= */
 
 /* -------------------------------------------------------------
-   Layout — form + sticky summary sidebar
+   1. Page head + step indicator
    ------------------------------------------------------------- */
-.transfer-layout {
-  display: grid;
-  grid-template-columns: 1fr 340px;
-  gap: 2rem;
-  align-items: start;
-  margin-top: 1.75rem;
+.transfer-main {
+  padding-block: 2.5rem 5rem;
 }
 
-.transfer-form-card {
-  background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  padding: 1.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
-.transfer-recipient-fields {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  border: none;
-  padding: 0;
-  margin: 0;
-}
-
-.field-optional {
-  font-weight: 400;
+.wizard-step-caption {
+  font-size: 0.82rem;
   color: var(--slate);
+  margin-bottom: 1.25rem;
 }
 
-/* -------------------------------------------------------------
-   Amount input with a currency badge inline
-   ------------------------------------------------------------- */
-.transfer-amount-wrap {
+.wizard-step-caption--center {
+  text-align: center;
+}
+
+.wizard-step-caption span {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.wizard-steps {
   display: flex;
-  align-items: stretch;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  background: var(--ivory);
+  justify-content: space-between;
+  margin-bottom: 2.5rem;
 }
 
-.transfer-amount-currency {
+.wizard-step {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.wizard-step:not(:first-child)::before {
+  content: '';
+  position: absolute;
+  top: 16px;
+  right: 50%;
+  width: 100%;
+  height: 2px;
+  background: var(--line);
+  z-index: 0;
+}
+
+.wizard-step.is-active:not(:first-child)::before,
+.wizard-step.is-complete:not(:first-child)::before {
+  background: var(--brass);
+}
+
+.wizard-step-dot {
+  position: relative;
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 2px solid var(--line);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 1rem;
   font-family: var(--font-mono);
+  font-size: 0.85rem;
   font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--ink);
-  background: var(--paper);
-  border-right: 1px solid var(--line);
-  min-width: 64px;
+  color: var(--slate);
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
 }
 
-.transfer-amount-wrap input {
-  border: none;
-  flex: 1;
-  padding: 0.85rem 1rem;
-  font-family: var(--font-mono);
-  font-size: 1.1rem;
-  background: transparent;
-}
-
-.transfer-amount-wrap input:focus {
-  outline: none;
-}
-
-.transfer-amount-wrap:focus-within {
+.wizard-step.is-active .wizard-step-dot {
   border-color: var(--brass);
-  box-shadow: 0 0 0 3px rgba(181, 138, 68, 0.14);
+  background: var(--brass);
+  color: var(--ink);
 }
 
-.transfer-submit-btn {
-  align-self: flex-start;
-  margin-top: 0.5rem;
+.wizard-step.is-complete .wizard-step-dot {
+  border-color: var(--brass);
+  background: var(--ink);
+  color: var(--brass-light);
+}
+
+.wizard-step-name {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--slate);
+}
+
+.wizard-step.is-active .wizard-step-name,
+.wizard-step.is-complete .wizard-step-name {
+  color: var(--ink);
 }
 
 /* -------------------------------------------------------------
-   Summary sidebar
+   2. Transfer card + wizard panels
    ------------------------------------------------------------- */
-.transfer-summary-card {
-  position: sticky;
-  top: 1.5rem;
+.transfer-card {
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
+  box-shadow: var(--shadow-card);
+  padding: 2rem;
 }
 
-.transfer-summary-card h2 {
-  font-size: 1rem;
-  margin: 0 0 0.25rem;
+.wizard-panel {
+  display: none;
 }
 
-.transfer-summary-row {
+.wizard-panel.is-active {
+  display: block;
+  animation: panel-in 0.25s ease; /* keyframes come from dashboard.css */
+}
+
+.wizard-actions {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  font-size: 0.88rem;
-}
-
-.transfer-summary-row span {
-  color: var(--slate);
-}
-
-.transfer-summary-row strong {
-  font-family: var(--font-mono);
-  color: var(--ink);
-  text-align: right;
-  word-break: break-word;
-}
-
-.transfer-summary-row--converted strong {
-  color: var(--brass-dark);
-}
-
-.transfer-summary-divider {
-  height: 1px;
-  background: var(--line);
-  margin: 0.25rem 0;
-}
-
-.transfer-summary-row--total {
-  font-size: 0.98rem;
-}
-
-.transfer-summary-row--total strong {
-  font-size: 1.05rem;
-}
-
-.transfer-summary-note {
-  font-size: 0.78rem;
-  color: var(--slate);
-  margin: 0.25rem 0 0;
-}
-
-.transfer-summary-note--error {
-  color: var(--red);
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
 }
 
 /* -------------------------------------------------------------
-   Responsive
+   3. Recipient step — recent strip, search, beneficiary cards
    ------------------------------------------------------------- */
-@media (max-width: 960px) {
-  .transfer-layout {
-    grid-template-columns: 1fr;
+.recipient-quick-label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--slate);
+  margin-bottom: 0.75rem;
+}
+
+.recipient-quick-strip {
+  display: flex;
+  gap: 0.85rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.75rem;
+}
+
+.recipient-quick-chip {
+  flex: 0 0 auto;
+  width: 62px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--slate-dark);
+  text-align: center;
+}
+
+.recipient-quick-chip .avatar-initial {
+  transition: transform 0.15s ease;
+}
+
+.recipient-quick-chip:hover .avatar-initial {
+  transform: translateY(-2px);
+}
+
+.recipient-quick-chip span:last-child {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tx-search {
+  position: relative;
+}
+
+.tx-search svg {
+  position: absolute;
+  top: 50%;
+  left: 1rem;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--slate);
+  pointer-events: none;
+}
+
+.tx-search input {
+  width: 100%;
+  padding: 0.85rem 1rem 0.85rem 2.75rem;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+}
+
+.tx-search input:focus {
+  outline: none;
+  border-color: var(--brass);
+  box-shadow: 0 0 0 3px rgba(181, 138, 68, 0.18);
+}
+
+.beneficiary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.beneficiary-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.9rem 1.1rem;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.18s ease, background-color 0.18s ease;
+}
+
+.beneficiary-card input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.beneficiary-card:hover {
+  border-color: var(--brass);
+}
+
+.beneficiary-card.is-selected {
+  border-color: var(--brass);
+  background: rgba(181, 138, 68, 0.07);
+}
+
+.beneficiary-card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.beneficiary-card-info strong {
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.beneficiary-card-info span {
+  font-size: 0.78rem;
+  color: var(--slate);
+}
+
+.beneficiary-card-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line);
+  color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease;
+}
+
+.beneficiary-card-check svg {
+  width: 12px;
+  height: 12px;
+}
+
+.beneficiary-card.is-selected .beneficiary-card-check {
+  background: var(--brass);
+  border-color: var(--brass);
+  color: var(--ink);
+}
+
+.empty-state-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--ivory);
+  color: var(--slate);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+
+.empty-state-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.empty-state h3 {
+  font-size: 1rem;
+  margin-bottom: 0.4rem;
+}
+
+.empty-state p {
+  font-size: 0.86rem;
+  max-width: 32ch;
+  margin-inline: auto;
+}
+
+/* -------------------------------------------------------------
+   4. Recipient step — new-recipient lookup + verified card
+   ------------------------------------------------------------- */
+.recipient-lookup-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--slate);
+  margin-top: 0.5rem;
+}
+
+.recipient-lookup-spinner {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  border-top-color: var(--brass);
+  animation: recipient-spin 0.7s linear infinite;
+}
+
+@keyframes recipient-spin {
+  to { transform: rotate(360deg); }
+}
+
+.recipient-verified-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding: 0.9rem 1rem;
+  border: 1.5px solid var(--green);
+  background: var(--green-bg);
+  border-radius: var(--radius-md);
+}
+
+.recipient-verified-card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.recipient-verified-card-info strong {
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.recipient-verified-card-info span {
+  font-size: 0.78rem;
+  color: var(--slate-dark);
+}
+
+.recipient-verified-clear {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: var(--brass-dark);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* -------------------------------------------------------------
+   5. Radio-style auth-method buttons (speed / schedule)
+   ------------------------------------------------------------- */
+.auth-method-btn--radio {
+  position: relative;
+  flex: 1;
+  min-width: 180px;
+  cursor: pointer;
+}
+
+.auth-method-btn--radio input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* -------------------------------------------------------------
+   6. Fee breakdown + balance note
+   ------------------------------------------------------------- */
+.transfer-fee-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  background: var(--ivory);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.transfer-fee-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.86rem;
+  color: var(--slate-dark);
+}
+
+.transfer-fee-row span:first-child {
+  color: var(--slate);
+}
+
+.transfer-fee-row--total {
+  padding-top: 0.65rem;
+  border-top: 1px dashed var(--line);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.transfer-fee-row--total span:first-child {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.balance-note {
+  font-size: 0.82rem;
+  color: var(--slate);
+  margin-bottom: 1.5rem;
+}
+
+.balance-note--warning {
+  color: var(--red);
+  font-weight: 600;
+}
+
+/* -------------------------------------------------------------
+   7. Review step
+   ------------------------------------------------------------- */
+.wizard-review-card {
+  background: var(--ivory);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 0.25rem 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.wizard-review-row {
+  display: grid;
+  grid-template-columns: 110px 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding-block: 0.9rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.wizard-review-row:last-child {
+  border-bottom: none;
+}
+
+.wizard-review-row span {
+  font-size: 0.82rem;
+  color: var(--slate);
+}
+
+.wizard-review-row strong {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* .wizard-edit-link is red by default elsewhere (Remove/Revoke).
+   "Edit" here isn't destructive, so it gets its own color rather
+   than changing the shared class everyone else relies on. */
+.wizard-review-row .wizard-edit-link {
+  color: var(--brass-dark);
+}
+
+/* -------------------------------------------------------------
+   8. Success step
+   ------------------------------------------------------------- */
+.transfer-success {
+  text-align: center;
+  padding-block: 1.5rem;
+}
+
+.transfer-success-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--green-bg);
+  color: var(--green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+}
+
+.transfer-success-icon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.transfer-success p {
+  max-width: 40ch;
+  margin: 0 auto 2rem;
+}
+
+.transfer-success-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+}
+
+.transfer-success-actions .btn {
+  flex: 1;
+  min-width: 140px;
+}
+
+/* -------------------------------------------------------------
+   9. Small overrides on shared classes
+   ------------------------------------------------------------- */
+/* transfer.js sets aria-checked on the from-account picker (and
+   also sets an inline style — see the code-review notes). This
+   keys the same selected look off the accessible attribute so it
+   still works even if that inline style is ever removed. */
+.account-strip-item[aria-checked="true"] {
+  border-color: var(--brass);
+  background: rgba(181, 138, 68, 0.07);
+}
+
+/* -------------------------------------------------------------
+   10. Responsive
+   ------------------------------------------------------------- */
+@media (max-width: 640px) {
+  .transfer-card {
+    padding: 1.25rem;
   }
 
-  .transfer-summary-card {
-    position: static;
+  .wizard-step-name {
+    display: none;
+  }
+
+  .wizard-review-row {
+    grid-template-columns: 1fr;
+    gap: 0.3rem;
+  }
+
+  .wizard-review-row .wizard-edit-link {
+    justify-self: start;
+  }
+
+  .auth-methods {
+    flex-direction: column;
+  }
+
+  .auth-method-btn--radio {
+    min-width: 0;
+  }
+
+  .transfer-success-actions {
+    flex-direction: column;
+  }
+
+  .transfer-success-actions .btn {
+    width: 100%;
+  }
+
+  .recipient-quick-chip {
+    width: 54px;
+  }
+
+  .wizard-actions {
+    flex-wrap: wrap;
   }
 }
 
-@media (max-width: 640px) {
-  .transfer-form-card {
-    padding: 1.25rem;
+@media (max-width: 400px) {
+  .wizard-step-dot {
+    width: 26px;
+    height: 26px;
+    font-size: 0.76rem;
   }
 }
