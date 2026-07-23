@@ -100,6 +100,69 @@ export async function getTotalBalance(userId, displayCurrency = 'USD') {
 }
 
 /* -----------------------------------------------------------
+   Opening a new account
+   ----------------------------------------------------------- */
+
+const SUPPORTED_CURRENCIES = ['USD', 'EUR', 'GBP', 'SGD', 'JPY', 'NGN', 'CAD', 'AUD', 'CHF'];
+
+/**
+ * Demo-friendly, client-side detail generator. Real banking details
+ * (IBAN, SWIFT/BIC, routing numbers, sort codes) must come from your
+ * banking-as-a-service partner or ledger provider in production —
+ * never mint them in the browser. This exists so the "Add currency
+ * account" flow on accounts.html has something plausible to show.
+ */
+function generateAccountDetails(currency) {
+  const digits = (n) => String(Math.floor(Math.random() * 10 ** n)).padStart(n, '0');
+  const swift = `MRDN${currency.slice(0, 2)}${currency === 'GBP' ? 'LN' : currency.slice(0, 2)}`;
+
+  if (currency === 'EUR') {
+    return { account_number: null, iban: `DE89 3704 ${digits(4)} ${digits(4)} ${digits(2)}`, swift_code: swift, sort_code: null };
+  }
+  if (currency === 'GBP') {
+    return { account_number: digits(8), iban: null, swift_code: null, sort_code: `${digits(2)}-${digits(2)}-${digits(2)}` };
+  }
+  return { account_number: digits(10), iban: null, swift_code: swift, sort_code: null };
+}
+
+/**
+ * Opens a new currency account for the signed-in (or given) user.
+ * Rejects duplicates (same currency + account type already open)
+ * and requires a business name for business accounts.
+ */
+export async function createAccount({ currency, accountType = 'personal', businessName, userId }) {
+  const uid = await resolveUserId(userId);
+  if (!uid) return { data: null, error: 'Not signed in.' };
+  if (!SUPPORTED_CURRENCIES.includes(currency)) return { data: null, error: 'Unsupported currency.' };
+  if (accountType === 'business' && !businessName?.trim()) {
+    return { data: null, error: 'Business name is required for a business account.' };
+  }
+
+  const { data: existing } = await getMyAccounts(uid);
+  if (existing.some((a) => a.currency === currency && (a.account_type || 'personal') === accountType)) {
+    return { data: null, error: `You already have a ${accountType} ${currency} account.` };
+  }
+
+  const details = generateAccountDetails(currency);
+
+  return wrap(
+    supabase
+      .from('accounts')
+      .insert({
+        user_id: uid,
+        currency,
+        balance: 0,
+        available_balance: 0,
+        account_type: accountType,
+        business_name: accountType === 'business' ? businessName.trim() : null,
+        ...details,
+      })
+      .select()
+      .single()
+  );
+}
+
+/* -----------------------------------------------------------
    Beneficiaries
    ----------------------------------------------------------- */
 
