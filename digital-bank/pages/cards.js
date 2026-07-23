@@ -224,6 +224,11 @@ function renderGrid() {
   $('#card-add-trigger').addEventListener('click', openAddCardModal);
 }
 
+function initHeaderAddCardButton() {
+  const btn = $('#card-add-btn');
+  if (btn) btn.addEventListener('click', openAddCardModal);
+}
+
 function cardTileMarkup(card) {
   const account = state.accountsById.get(card.account_id);
   const isFrozen = (card.card_status || '').toLowerCase() === 'blocked';
@@ -551,10 +556,13 @@ function escCloseHandler(modal) {
   const user = await requireAuth();
   if (!user) return; // requireAuth() already redirected to login.html
 
+  document.body.classList.remove('auth-pending');
+
   initUserMenu();
   initLogout();
   initLimitModal();
   initAddCardModal();
+  initHeaderAddCardButton();
   await populateUserChrome();
 
   const { data: accounts, error } = await getMyAccounts();
@@ -579,4 +587,3 @@ function escCloseHandler(modal) {
 
   await loadCards();
 })();
-
