@@ -17,7 +17,7 @@
 <a class="skip-link" href="#main-content">Skip to main content</a>
 
 <!-- =========================================================
-     LOGGED-IN APP HEADER
+     LOGGED-IN APP HEADER (unchanged — shared shell)
      ========================================================= -->
 <header class="app-header">
   <div class="container app-header-row">
@@ -68,474 +68,501 @@
   </div>
 </header>
 
-<main id="main-content" class="transfer-main">
-  <div class="container container--narrow">
+<main id="main-content" class="send-main">
+  <div class="container">
 
-    <div class="page-head">
-      <h1>Send money</h1>
-      <p>Transfer to 190+ countries at the mid-market rate, with every fee shown before you confirm.</p>
-    </div>
+    <!-- ================= HERO ================= -->
+    <div class="send-hero">
+      <p class="send-eyebrow">International transfer</p>
+      <h1 id="send-hero-title">Where's this going?</h1>
+      <p id="send-hero-sub">Enter an account number, IBAN, or Meridian tag and we'll verify the recipient automatically — at the mid-market rate, with every fee shown up front.</p>
 
-    <!-- ================= ANIMATED PROGRESS ================= -->
-    <div class="wizard-progress" aria-label="Transfer progress">
-      <div class="wizard-progress-track">
-        <div class="wizard-progress-fill" id="wizard-progress-fill"></div>
-      </div>
-      <ol class="wizard-steps">
-        <li class="wizard-step is-active" data-step="1">
-          <span class="wizard-step-dot"><span class="wizard-step-num">1</span><svg class="wizard-step-check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5 6.5 12 13 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <span class="wizard-step-name">Recipient</span>
-        </li>
-        <li class="wizard-step" data-step="2">
-          <span class="wizard-step-dot"><span class="wizard-step-num">2</span><svg class="wizard-step-check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5 6.5 12 13 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <span class="wizard-step-name">Details</span>
-        </li>
-        <li class="wizard-step" data-step="3">
-          <span class="wizard-step-dot"><span class="wizard-step-num">3</span><svg class="wizard-step-check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5 6.5 12 13 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <span class="wizard-step-name">Review</span>
-        </li>
-        <li class="wizard-step" data-step="4">
-          <span class="wizard-step-dot"><span class="wizard-step-num">4</span><svg class="wizard-step-check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5 6.5 12 13 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <span class="wizard-step-name">Verify</span>
-        </li>
-        <li class="wizard-step" data-step="5">
-          <span class="wizard-step-dot"><span class="wizard-step-num">5</span><svg class="wizard-step-check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5 6.5 12 13 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <span class="wizard-step-name">Done</span>
-        </li>
-      </ol>
-    </div>
-
-    <!-- Floating live-preview card — appears from step 2 onward.
-         Echoes the homepage's floating balance card / float-chip
-         motif so the app doesn't feel like a separate product. -->
-    <div class="transfer-preview-float" id="transfer-preview-float" hidden aria-hidden="true">
-      <div class="transfer-preview-row">
-        <span class="avatar-initial avatar-initial--sm" id="preview-avatar">·</span>
-        <div class="transfer-preview-info">
-          <strong id="preview-name">—</strong>
-          <span id="preview-meta">—</span>
+      <!-- ================= STEP RAIL ================= -->
+      <div class="send-rail" aria-label="Transfer progress">
+        <div class="send-rail-track">
+          <div class="send-rail-fill" id="send-rail-fill"></div>
         </div>
+        <ol class="send-rail-steps">
+          <li class="send-rail-step is-active" data-step="1">
+            <span class="send-rail-dot"><span class="send-rail-num">1</span><svg class="send-rail-check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5 6.5 12 13 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="send-rail-name">Recipient</span>
+          </li>
+          <li class="send-rail-step" data-step="2">
+            <span class="send-rail-dot"><span class="send-rail-num">2</span><svg class="send-rail-check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5 6.5 12 13 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="send-rail-name">Details</span>
+          </li>
+          <li class="send-rail-step" data-step="3">
+            <span class="send-rail-dot"><span class="send-rail-num">3</span><svg class="send-rail-check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5 6.5 12 13 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="send-rail-name">Review</span>
+          </li>
+          <li class="send-rail-step" data-step="4">
+            <span class="send-rail-dot"><span class="send-rail-num">4</span><svg class="send-rail-check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5 6.5 12 13 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="send-rail-name">Verify</span>
+          </li>
+          <li class="send-rail-step" data-step="5">
+            <span class="send-rail-dot"><span class="send-rail-num">5</span><svg class="send-rail-check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5 6.5 12 13 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="send-rail-name">Done</span>
+          </li>
+        </ol>
       </div>
-      <div class="transfer-preview-amount mono" id="preview-amount">—</div>
     </div>
 
-    <div class="transfer-card glass-card">
-      <form id="transfer-form" novalidate>
+    <!-- ================= TWO-COLUMN LAYOUT ================= -->
+    <div class="send-layout">
+      <div class="send-col">
+        <form id="transfer-form" novalidate>
 
-        <!-- ===================== STEP 1 — RECIPIENT VERIFICATION ===================== -->
-        <fieldset class="wizard-panel is-active" data-panel="1">
-          <legend class="sr-only">Recipient verification</legend>
+          <!-- ===================== STEP 1 — RECIPIENT ===================== -->
+          <fieldset class="send-panel is-active" data-panel="1">
+            <legend class="sr-only">Recipient verification</legend>
 
-          <div class="wizard-panel-head">
-            <h2>Who are you sending to?</h2>
-            <p>Enter their account number, IBAN, or Meridian tag — we'll verify it automatically.</p>
-          </div>
+            <span class="send-section-label">Recipient</span>
 
-          <div class="field field--identifier">
-            <label for="recipient-identifier">Recipient account number, IBAN, or Meridian tag</label>
-            <input type="text" id="recipient-identifier" name="identifier" placeholder="e.g. DE89 3704 0044 0532 0130 00" autocomplete="off" autofocus>
-          </div>
+            <div class="send-lookup-card">
+              <div class="send-lookup-row">
+                <span class="send-lookup-icon">
+                  <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="2.5" y="5" width="15" height="11" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M2.5 8.5h15" stroke="currentColor" stroke-width="1.4"/><path d="M5.5 12.2h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                </span>
+                <div class="send-lookup-input-wrap">
+                  <label for="recipient-identifier">Account number, IBAN, or Meridian tag</label>
+                  <input type="text" id="recipient-identifier" name="identifier" placeholder="e.g. DE89 3704 0044 0532 0130 00" autocomplete="off" autofocus>
+                </div>
+              </div>
+              <div class="send-lookup-underline"></div>
+            </div>
 
-          <div class="recipient-lookup-status" id="recipient-lookup-status" aria-live="polite"></div>
+            <div class="recipient-lookup-status" id="recipient-lookup-status" aria-live="polite"></div>
 
-          <!-- Verified recipient card -->
-          <div class="recipient-found-card" id="recipient-verified-card" hidden>
-            <div class="recipient-found-head">
-              <span class="avatar-initial avatar-initial--lg" id="recipient-verified-avatar">·</span>
+            <!-- Verified recipient reveal -->
+            <div class="recipient-found-card" id="recipient-verified-card" hidden>
+              <div class="recipient-found-head">
+                <span class="recipient-avatar-ring">
+                  <span class="avatar-initial" id="recipient-verified-avatar">·</span>
+                  <span class="recipient-seal">
+                    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5 6.5 12 13 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </span>
+                </span>
+                <div>
+                  <div class="recipient-found-title">Recipient found</div>
+                  <strong id="recipient-verified-name">—</strong>
+                </div>
+              </div>
+              <dl class="recipient-found-grid">
+                <div><dt>Bank</dt><dd id="recipient-verified-bank">—</dd></div>
+                <div><dt>Account</dt><dd id="recipient-verified-account" class="mono">—</dd></div>
+                <div><dt>Country</dt><dd id="recipient-verified-country">—</dd></div>
+              </dl>
+              <button type="button" class="recipient-verified-clear" id="recipient-verified-clear">Not them? Search again</button>
+            </div>
+
+            <!-- Not found -->
+            <div class="recipient-not-found-card" id="recipient-not-found-card" hidden>
+              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 6.5v4M10 13.2v.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.4"/></svg>
               <div>
-                <div class="recipient-found-title">Recipient found</div>
-                <strong id="recipient-verified-name">—</strong>
-              </div>
-              <span class="status-pill status-pill--verified" id="recipient-verified-badge">
-                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5 6.5 12 13 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                Verified
-              </span>
-            </div>
-            <dl class="recipient-found-grid">
-              <div><dt>Bank</dt><dd id="recipient-verified-bank">—</dd></div>
-              <div><dt>Account</dt><dd id="recipient-verified-account" class="mono">—</dd></div>
-              <div><dt>Country</dt><dd id="recipient-verified-country">—</dd></div>
-              <div><dt>Status</dt><dd id="recipient-verified-status">Active</dd></div>
-            </dl>
-            <button type="button" class="recipient-verified-clear" id="recipient-verified-clear">Not them? Search again</button>
-          </div>
-
-          <!-- Not found -->
-          <div class="recipient-not-found-card" id="recipient-not-found-card" hidden>
-            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 6.5v4M10 13.2v.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.4"/></svg>
-            <div>
-              <strong>Account not found</strong>
-              <span>We couldn't verify this automatically — check the number, or add their details below.</span>
-            </div>
-          </div>
-
-          <!-- Manual fallback -->
-          <div id="recipient-manual-fields" hidden>
-            <p class="wizard-divider-label">Recipient details</p>
-            <div class="field">
-              <label for="new-beneficiary-name">Recipient's full name</label>
-              <input type="text" id="new-beneficiary-name" name="beneficiary_name" placeholder="As it appears on their bank account">
-            </div>
-            <div class="form-row-2">
-              <div class="field">
-                <label for="new-beneficiary-bank">Bank name</label>
-                <input type="text" id="new-beneficiary-bank" name="bank_name" placeholder="e.g. Deutsche Bank">
-              </div>
-              <div class="field">
-                <label for="new-beneficiary-country">Recipient's country</label>
-                <select id="new-beneficiary-country" name="beneficiary_country">
-                  <option value="">Choose country</option>
-                  <option value="DE">Germany</option>
-                  <option value="GB">United Kingdom</option>
-                  <option value="SG">Singapore</option>
-                  <option value="NG">Nigeria</option>
-                  <option value="US">United States</option>
-                  <option value="CA">Canada</option>
-                  <option value="AU">Australia</option>
-                  <option value="CH">Switzerland</option>
-                  <option value="JP">Japan</option>
-                </select>
+                <strong>Account not found</strong>
+                <span>We couldn't verify this automatically — check the number, or add their details below.</span>
               </div>
             </div>
-            <div class="form-row-2">
-              <div class="field">
-                <label for="new-beneficiary-account">Account number / IBAN</label>
-                <input type="text" id="new-beneficiary-account" name="account_number" placeholder="e.g. DE89 3704 0044 0532 0130 00">
+
+            <!-- Manual fallback -->
+            <div class="send-manual-fields" id="recipient-manual-fields" hidden>
+              <span class="send-section-label">Recipient details</span>
+              <div class="send-field">
+                <label for="new-beneficiary-name">Recipient's full name</label>
+                <input type="text" id="new-beneficiary-name" name="beneficiary_name" placeholder="As it appears on their bank account">
               </div>
-              <div class="field">
-                <label for="new-beneficiary-swift">SWIFT / BIC code</label>
-                <input type="text" id="new-beneficiary-swift" name="swift_code" placeholder="e.g. DEUTDEFF">
+              <div class="send-field-row-2">
+                <div class="send-field">
+                  <label for="new-beneficiary-bank">Bank name</label>
+                  <input type="text" id="new-beneficiary-bank" name="bank_name" placeholder="e.g. Deutsche Bank">
+                </div>
+                <div class="send-field">
+                  <label for="new-beneficiary-country">Recipient's country</label>
+                  <select id="new-beneficiary-country" name="beneficiary_country">
+                    <option value="">Choose country</option>
+                    <option value="DE">Germany</option>
+                    <option value="GB">United Kingdom</option>
+                    <option value="SG">Singapore</option>
+                    <option value="NG">Nigeria</option>
+                    <option value="US">United States</option>
+                    <option value="CA">Canada</option>
+                    <option value="AU">Australia</option>
+                    <option value="CH">Switzerland</option>
+                    <option value="JP">Japan</option>
+                  </select>
+                </div>
               </div>
-            </div>
-            <label class="checkbox-field">
-              <input type="checkbox" id="save-beneficiary-checkbox" checked>
-              Save this recipient as a beneficiary for future transfers
-            </label>
-          </div>
-
-          <!-- Recent + saved beneficiaries — secondary, collapsed by default -->
-          <details class="recipient-saved-toggle" id="recipient-saved-toggle">
-            <summary>Or choose someone you've paid before</summary>
-
-            <div id="recipient-recent-wrap" hidden>
-              <p class="recipient-quick-label">Recent</p>
-              <div class="recipient-quick-strip" id="recipient-recent-strip" aria-label="Recently paid recipients"></div>
-            </div>
-
-            <div class="tx-search" style="margin-bottom:1rem;">
-              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.5"/><path d="m17 17-3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-              <label for="beneficiary-search" class="sr-only">Search beneficiaries</label>
-              <input type="search" id="beneficiary-search" placeholder="Search saved recipients" autocomplete="off">
-            </div>
-
-            <div class="beneficiary-list" id="beneficiary-list" aria-live="polite">
-              <div class="skeleton" style="height:64px;border-radius:14px;margin-bottom:0.6rem;"></div>
-              <div class="skeleton" style="height:64px;border-radius:14px;"></div>
-            </div>
-          </details>
-
-          <div class="wizard-actions">
-            <span></span>
-            <button type="button" class="btn btn-primary wizard-next" data-goto="2" id="step1-continue" disabled>
-              Continue
-              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </button>
-          </div>
-        </fieldset>
-
-        <!-- ===================== STEP 2 — TRANSFER DETAILS ===================== -->
-        <fieldset class="wizard-panel" data-panel="2">
-          <legend class="sr-only">Transfer details</legend>
-
-          <div class="wizard-panel-head">
-            <h2>How much are you sending?</h2>
-            <p>Sending to <strong data-review="beneficiary_inline">—</strong></p>
-          </div>
-
-          <p class="field-label-static">Send from</p>
-          <div class="account-strip" id="from-account-strip" style="margin-bottom:1.5rem;" role="radiogroup" aria-label="Account to send from">
-            <div class="skeleton account-strip-item" style="min-width:168px;height:70px;"></div>
-          </div>
-
-          <div class="converter-row" style="margin-bottom:1.25rem;">
-            <div class="converter-group">
-              <div style="width:100%">
-                <label for="transfer-send-amount" class="sr-only">You send</label>
-                <input type="number" id="transfer-send-amount" class="mono" value="1000" min="1" step="1" inputmode="decimal">
+              <div class="send-field-row-2">
+                <div class="send-field">
+                  <label for="new-beneficiary-account">Account number / IBAN</label>
+                  <input type="text" id="new-beneficiary-account" name="account_number" placeholder="e.g. DE89 3704 0044 0532 0130 00">
+                </div>
+                <div class="send-field">
+                  <label for="new-beneficiary-swift">SWIFT / BIC code</label>
+                  <input type="text" id="new-beneficiary-swift" name="swift_code" placeholder="e.g. DEUTDEFF">
+                </div>
               </div>
-              <span class="converter-currency-tag mono" id="transfer-send-currency-tag">USD</span>
-            </div>
-            <span class="converter-swap-static" aria-hidden="true">
-              <svg viewBox="0 0 20 20" fill="none"><path d="M4 7h11l-3-3M16 13H5l3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </span>
-            <div class="converter-group">
-              <div style="width:100%">
-                <label for="transfer-receive-amount" class="sr-only">Recipient gets</label>
-                <input type="text" id="transfer-receive-amount" class="mono" value="0.00" readonly>
-              </div>
-              <select class="mono" id="transfer-receive-currency" aria-label="Recipient's currency">
-                <option value="USD">USD</option>
-                <option value="EUR">EUR</option>
-                <option value="GBP">GBP</option>
-                <option value="SGD">SGD</option>
-                <option value="JPY">JPY</option>
-                <option value="NGN">NGN</option>
-                <option value="CAD">CAD</option>
-                <option value="AUD">AUD</option>
-                <option value="CHF">CHF</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="transfer-live-summary" id="transfer-live-summary">
-            <div class="transfer-fee-row">
-              <span>Exchange rate</span>
-              <span class="mono" id="fee-rate-note">—</span>
-            </div>
-            <div class="transfer-fee-row">
-              <span>Transfer fee</span>
-              <span class="mono" id="fee-amount">$0.00</span>
-            </div>
-            <div class="transfer-fee-row">
-              <span>Available balance</span>
-              <span class="mono" id="fee-available">—</span>
-            </div>
-            <div class="transfer-fee-row transfer-fee-row--total">
-              <span>Total to pay</span>
-              <span class="mono" id="fee-total">$0.00</span>
-            </div>
-            <div class="transfer-fee-row">
-              <span>Remaining after send</span>
-              <span class="mono" id="fee-remaining">—</span>
-            </div>
-            <div class="transfer-fee-row">
-              <span>Arrives</span>
-              <span id="fee-arrives">Within a few hours</span>
-            </div>
-          </div>
-
-          <p class="balance-note" id="balance-note" aria-live="polite"></p>
-
-          <div class="field">
-            <span class="field-label-static">Transfer type</span>
-            <div class="auth-methods">
-              <label class="auth-method-btn auth-method-btn--radio is-selected">
-                <input type="radio" name="speed" value="standard" checked>
-                Standard — a few hours
-              </label>
-              <label class="auth-method-btn auth-method-btn--radio">
-                <input type="radio" name="speed" value="instant">
-                Instant — minutes
+              <label class="send-checkbox">
+                <input type="checkbox" id="save-beneficiary-checkbox" checked>
+                Save this recipient as a beneficiary for future transfers
               </label>
             </div>
-          </div>
 
-          <div class="form-row-2">
-            <div class="field">
-              <label for="transfer-purpose">Transfer purpose</label>
-              <select id="transfer-purpose" name="purpose">
-                <option value="Family support">Family support</option>
-                <option value="Business payment">Business payment</option>
-                <option value="Property purchase">Property purchase</option>
-                <option value="Education">Education</option>
-                <option value="Travel">Travel</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-            <div class="field">
-              <span class="field-label-static">When should this send?</span>
-              <div class="auth-methods">
-                <label class="auth-method-btn auth-method-btn--radio is-selected">
-                  <input type="radio" name="schedule" value="now" checked>
-                  Now
-                </label>
-                <label class="auth-method-btn auth-method-btn--radio">
-                  <input type="radio" name="schedule" value="later">
-                  Later
-                </label>
+            <!-- Recent + saved beneficiaries -->
+            <details class="send-saved-toggle" id="recipient-saved-toggle">
+              <summary>Or choose someone you've paid before</summary>
+
+              <div id="recipient-recent-wrap" hidden>
+                <p class="send-quick-label">Recent</p>
+                <div class="send-quick-strip" id="recipient-recent-strip" aria-label="Recently paid recipients"></div>
               </div>
-            </div>
-          </div>
 
-          <div class="field" id="schedule-later-field" hidden>
-            <label for="schedule-later-datetime">Send on</label>
-            <input type="datetime-local" id="schedule-later-datetime" name="scheduled_for">
-          </div>
+              <div class="send-search">
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.5"/><path d="m17 17-3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                <label for="beneficiary-search" class="sr-only">Search beneficiaries</label>
+                <input type="search" id="beneficiary-search" placeholder="Search saved recipients" autocomplete="off">
+              </div>
 
-          <div class="field">
-            <label for="transfer-reference">Note (optional)</label>
-            <input type="text" id="transfer-reference" name="reference" placeholder="e.g. Invoice #2026-014" maxlength="140">
-          </div>
+              <div class="beneficiary-list" id="beneficiary-list" aria-live="polite">
+                <div class="skeleton" style="height:64px;border-radius:14px;margin-bottom:0.6rem;"></div>
+                <div class="skeleton" style="height:64px;border-radius:14px;"></div>
+              </div>
+            </details>
 
-          <div class="wizard-actions">
-            <button type="button" class="btn btn-ghost wizard-back" data-goto="1">
-              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M13 8H3M7 4 3 8l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              Back
-            </button>
-            <button type="button" class="btn btn-primary wizard-next" data-goto="3" id="step2-continue">
-              Continue
-              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </button>
-          </div>
-        </fieldset>
-
-        <!-- ===================== STEP 3 — REVIEW ===================== -->
-        <fieldset class="wizard-panel" data-panel="3">
-          <legend class="sr-only">Review and confirm</legend>
-
-          <div class="wizard-panel-head">
-            <h2>Review your transfer</h2>
-            <p>Check the details below. You can go back and change anything before you confirm.</p>
-          </div>
-
-          <div class="wizard-review-card">
-            <div class="wizard-review-row">
-              <span>From account</span>
-              <strong data-review="from_account">—</strong>
-              <button type="button" class="wizard-edit-link" data-goto="2">Edit</button>
-            </div>
-            <div class="wizard-review-row">
-              <span>Recipient</span>
-              <strong data-review="beneficiary">—</strong>
-              <button type="button" class="wizard-edit-link" data-goto="1">Edit</button>
-            </div>
-            <div class="wizard-review-row">
-              <span>You send</span>
-              <strong data-review="send_amount">—</strong>
-              <button type="button" class="wizard-edit-link" data-goto="2">Edit</button>
-            </div>
-            <div class="wizard-review-row">
-              <span>They receive</span>
-              <strong data-review="receive_amount">—</strong>
-              <button type="button" class="wizard-edit-link" data-goto="2">Edit</button>
-            </div>
-            <div class="wizard-review-row">
-              <span>Exchange rate</span>
-              <strong data-review="rate">—</strong>
-            </div>
-            <div class="wizard-review-row">
-              <span>Transfer fee</span>
-              <strong data-review="fee">—</strong>
-            </div>
-            <div class="wizard-review-row">
-              <span>Total debit</span>
-              <strong data-review="total">—</strong>
-            </div>
-            <div class="wizard-review-row">
-              <span>Purpose</span>
-              <strong data-review="purpose">—</strong>
-              <button type="button" class="wizard-edit-link" data-goto="2">Edit</button>
-            </div>
-            <div class="wizard-review-row">
-              <span>Date</span>
-              <strong data-review="schedule">—</strong>
-              <button type="button" class="wizard-edit-link" data-goto="2">Edit</button>
-            </div>
-            <div class="wizard-review-row">
-              <span>Reference</span>
-              <strong data-review="reference_note">Assigned once you confirm</strong>
-            </div>
-          </div>
-
-          <div class="wizard-actions">
-            <button type="button" class="btn btn-ghost wizard-back" data-goto="2">
-              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M13 8H3M7 4 3 8l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              Back
-            </button>
-            <button type="button" class="btn btn-primary wizard-next" data-goto="4">
-              Continue to verification
-              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </button>
-          </div>
-        </fieldset>
-
-        <!-- ===================== STEP 4 — AUTHENTICATION ===================== -->
-        <fieldset class="wizard-panel" data-panel="4">
-          <legend class="sr-only">Confirm your identity</legend>
-
-          <div class="wizard-panel-head">
-            <h2>Confirm it's you</h2>
-            <p>Enter your account password to authorize this transfer.</p>
-          </div>
-
-          <div class="verify-notice">
-            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2.5 17 6v5c0 4.2-2.9 7.4-7 8.5-4.1-1.1-7-4.3-7-8.5V6l7-3.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
-            <span>One-time codes aren't available yet, so we're using your account password to confirm this send.</span>
-          </div>
-
-          <div class="wizard-review-card" style="margin-bottom:1.5rem;">
-            <div class="wizard-review-row">
-              <span>Sending</span>
-              <strong data-review="verify_amount">—</strong>
-            </div>
-            <div class="wizard-review-row">
-              <span>To</span>
-              <strong data-review="verify_recipient">—</strong>
-            </div>
-          </div>
-
-          <div class="field">
-            <label for="transfer-auth-password">Account password</label>
-            <div class="password-field-wrap">
-              <input type="password" id="transfer-auth-password" name="auth_password" autocomplete="current-password" placeholder="Enter your password">
-              <button type="button" class="password-toggle" id="auth-password-toggle" aria-pressed="false" aria-label="Show password">
-                <svg class="icon-show" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M1.5 10S4.5 4 10 4s8.5 6 8.5 6-3 6-8.5 6-8.5-6-8.5-6Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.4"/></svg>
-                <svg class="icon-hide" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M2 2l16 16M8.3 8.4a2.5 2.5 0 0 0 3.3 3.3M6 6.2C3.4 7.6 1.5 10 1.5 10s3 6 8.5 6c1.4 0 2.7-.4 3.8-1M14.2 14.2C16.6 12.7 18.5 10 18.5 10s-1.4-2.8-4-4.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            <div class="send-actions">
+              <span></span>
+              <button type="button" class="btn btn-primary send-next" data-goto="2" id="step1-continue" disabled>
+                Continue
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </button>
             </div>
-            <span class="field-error" role="alert" id="auth-password-error"></span>
+          </fieldset>
+
+          <!-- ===================== STEP 2 — DETAILS ===================== -->
+          <fieldset class="send-panel" data-panel="2">
+            <legend class="sr-only">Transfer details</legend>
+
+            <span class="send-section-label">Send from</span>
+            <div class="send-account-strip" id="from-account-strip" role="radiogroup" aria-label="Account to send from">
+              <div class="skeleton" style="min-width:168px;height:56px;border-radius:999px;"></div>
+            </div>
+
+            <span class="send-section-label">Amount</span>
+            <div class="send-amount-group">
+              <div class="send-amount-row">
+                <div class="send-amount-col">
+                  <label for="transfer-send-amount">You send</label>
+                  <div class="send-amount-field">
+                    <span class="send-currency-tag mono" id="transfer-send-currency-tag">USD</span>
+                    <input type="number" id="transfer-send-amount" value="1000" min="1" step="1" inputmode="decimal">
+                  </div>
+                </div>
+                <span class="send-amount-swap" aria-hidden="true">
+                  <svg viewBox="0 0 20 20" fill="none"><path d="M4 7h11l-3-3M16 13H5l3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+                <div class="send-amount-col">
+                  <label for="transfer-receive-amount">Recipient gets</label>
+                  <div class="send-amount-field">
+                    <select class="send-currency-select" id="transfer-receive-currency" aria-label="Recipient's currency">
+                      <option value="USD">USD</option>
+                      <option value="EUR">EUR</option>
+                      <option value="GBP">GBP</option>
+                      <option value="SGD">SGD</option>
+                      <option value="JPY">JPY</option>
+                      <option value="NGN">NGN</option>
+                      <option value="CAD">CAD</option>
+                      <option value="AUD">AUD</option>
+                      <option value="CHF">CHF</option>
+                    </select>
+                    <input type="text" id="transfer-receive-amount" value="0.00" readonly>
+                  </div>
+                </div>
+              </div>
+
+              <div class="send-amount-divider"></div>
+
+              <p class="balance-note" id="balance-note" aria-live="polite"></p>
+            </div>
+
+            <div class="send-field">
+              <span class="send-section-label" style="margin-bottom:0.75rem;">Transfer type</span>
+              <div class="send-segmented">
+                <label class="send-segmented-btn is-selected">
+                  <input type="radio" name="speed" value="standard" checked>
+                  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6.2" stroke="currentColor" stroke-width="1.4"/><path d="M8 4.8V8l2.2 1.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                  Standard
+                </label>
+                <label class="send-segmented-btn">
+                  <input type="radio" name="speed" value="instant">
+                  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8.7 1.5 3 9.2h4l-.8 5.3 5.8-8H8.2l.5-5Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+                  Instant
+                </label>
+              </div>
+            </div>
+
+            <div class="send-field-group">
+              <div class="send-field">
+                <label for="transfer-purpose">Transfer purpose</label>
+                <select id="transfer-purpose" name="purpose">
+                  <option value="Family support">Family support</option>
+                  <option value="Business payment">Business payment</option>
+                  <option value="Property purchase">Property purchase</option>
+                  <option value="Education">Education</option>
+                  <option value="Travel">Travel</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="send-field">
+                <span class="send-section-label" style="margin-bottom:0.75rem;">When should this send?</span>
+                <div class="send-segmented">
+                  <label class="send-segmented-btn is-selected">
+                    <input type="radio" name="schedule" value="now" checked>
+                    Now
+                  </label>
+                  <label class="send-segmented-btn">
+                    <input type="radio" name="schedule" value="later">
+                    Later
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="send-field" id="schedule-later-field" hidden>
+              <label for="schedule-later-datetime">Send on</label>
+              <input type="datetime-local" id="schedule-later-datetime" name="scheduled_for">
+            </div>
+
+            <div class="send-field">
+              <label for="transfer-reference">Note (optional)</label>
+              <input type="text" id="transfer-reference" name="reference" placeholder="e.g. Invoice #2026-014" maxlength="140">
+            </div>
+
+            <div class="send-actions">
+              <button type="button" class="btn btn-ghost send-back" data-goto="1">
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M13 8H3M7 4 3 8l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Back
+              </button>
+              <button type="button" class="btn btn-primary send-next" data-goto="3" id="step2-continue">
+                Continue
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+          </fieldset>
+
+          <!-- ===================== STEP 3 — REVIEW ===================== -->
+          <fieldset class="send-panel" data-panel="3">
+            <legend class="sr-only">Review and confirm</legend>
+
+            <span class="send-section-label">Review</span>
+
+            <div class="send-review-list">
+              <div class="send-review-row">
+                <span>From account</span>
+                <strong data-review="from_account">—</strong>
+                <button type="button" class="send-edit-link" data-goto="2">Edit</button>
+              </div>
+              <div class="send-review-row">
+                <span>Recipient</span>
+                <strong data-review="beneficiary">—</strong>
+                <button type="button" class="send-edit-link" data-goto="1">Edit</button>
+              </div>
+              <div class="send-review-row">
+                <span>You send</span>
+                <strong data-review="send_amount">—</strong>
+                <button type="button" class="send-edit-link" data-goto="2">Edit</button>
+              </div>
+              <div class="send-review-row">
+                <span>They receive</span>
+                <strong data-review="receive_amount">—</strong>
+                <button type="button" class="send-edit-link" data-goto="2">Edit</button>
+              </div>
+              <div class="send-review-row">
+                <span>Exchange rate</span>
+                <strong data-review="rate">—</strong>
+              </div>
+              <div class="send-review-row">
+                <span>Transfer fee</span>
+                <strong data-review="fee">—</strong>
+              </div>
+              <div class="send-review-row">
+                <span>Total debit</span>
+                <strong data-review="total">—</strong>
+              </div>
+              <div class="send-review-row">
+                <span>Purpose</span>
+                <strong data-review="purpose">—</strong>
+                <button type="button" class="send-edit-link" data-goto="2">Edit</button>
+              </div>
+              <div class="send-review-row">
+                <span>Date</span>
+                <strong data-review="schedule">—</strong>
+                <button type="button" class="send-edit-link" data-goto="2">Edit</button>
+              </div>
+            </div>
+
+            <div class="send-review-note">
+              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2.5 17 6v5c0 4.2-2.9 7.4-7 8.5-4.1-1.1-7-4.3-7-8.5V6l7-3.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+              <span>Once you confirm, we'll ask you to verify it's really you before anything is sent.</span>
+            </div>
+
+            <div class="send-actions">
+              <button type="button" class="btn btn-ghost send-back" data-goto="2">
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M13 8H3M7 4 3 8l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Back
+              </button>
+              <button type="button" class="btn btn-primary send-next" data-goto="4">
+                Continue to verification
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+          </fieldset>
+
+          <!-- ===================== STEP 4 — VERIFY ===================== -->
+          <fieldset class="send-panel" data-panel="4">
+            <legend class="sr-only">Confirm your identity</legend>
+
+            <span class="send-section-label">Verify</span>
+
+            <div class="send-verify-visual">
+              <span class="send-shield">
+                <svg class="ring ring--pulse" viewBox="0 0 92 92"><circle cx="46" cy="46" r="35" stroke-width="1.4"/></svg>
+                <span class="send-shield-body">
+                  <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2.5 17 6v5c0 4.2-2.9 7.4-7 8.5-4.1-1.1-7-4.3-7-8.5V6l7-3.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M7.3 10.2l1.9 1.9 3.6-3.9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+              </span>
+            </div>
+
+            <div class="send-panel-head" style="text-align:center;">
+              <h2>Confirm it's you</h2>
+              <p>One-time codes aren't available yet, so we're using your account password to authorize this send.</p>
+            </div>
+
+            <div class="send-verify-summary">
+              <strong data-review="verify_amount">—</strong>
+              <span>to <span data-review="verify_recipient">—</span></span>
+            </div>
+
+            <div class="send-password-field">
+              <div class="field password-field-wrap">
+                <label for="transfer-auth-password" class="sr-only">Account password</label>
+                <input type="password" id="transfer-auth-password" name="auth_password" autocomplete="current-password" placeholder="Enter your account password">
+                <button type="button" class="password-toggle" id="auth-password-toggle" aria-pressed="false" aria-label="Show password">
+                  <svg class="icon-show" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M1.5 10S4.5 4 10 4s8.5 6 8.5 6-3 6-8.5 6-8.5-6-8.5-6Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.4"/></svg>
+                  <svg class="icon-hide" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M2 2l16 16M8.3 8.4a2.5 2.5 0 0 0 3.3 3.3M6 6.2C3.4 7.6 1.5 10 1.5 10s3 6 8.5 6c1.4 0 2.7-.4 3.8-1M14.2 14.2C16.6 12.7 18.5 10 18.5 10s-1.4-2.8-4-4.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                </button>
+              </div>
+              <span class="field-error" role="alert" id="auth-password-error"></span>
+            </div>
+
+            <p class="field-hint" id="review-error" style="color:var(--red); display:none; text-align:center;"></p>
+
+            <div class="send-actions">
+              <button type="button" class="btn btn-ghost send-back" data-goto="3">
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M13 8H3M7 4 3 8l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Back
+              </button>
+              <button type="button" class="btn btn-primary" id="confirm-send-btn">
+                <span class="auth-submit-label">Confirm &amp; send</span>
+              </button>
+            </div>
+          </fieldset>
+
+          <!-- ===================== STEP 5 — SUCCESS ===================== -->
+          <fieldset class="send-panel" data-panel="5">
+            <legend class="sr-only">Transfer sent</legend>
+
+            <div class="send-success">
+              <span class="send-success-icon">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path class="checkmark-path" d="M5 12.5 10 17l9-10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <h2 id="success-heading">Transfer sent</h2>
+              <p id="success-message">Your money is on its way.</p>
+
+              <div class="send-review-list" style="text-align:left;">
+                <div class="send-review-row">
+                  <span>Reference</span>
+                  <strong id="success-reference">—</strong>
+                  <button type="button" class="send-edit-link" id="copy-reference-btn">Copy</button>
+                </div>
+                <div class="send-review-row">
+                  <span>Status</span>
+                  <strong id="success-status">Processing</strong>
+                </div>
+                <div class="send-review-row">
+                  <span>Available balance</span>
+                  <strong id="success-balance">—</strong>
+                </div>
+              </div>
+
+              <div class="send-success-actions">
+                <button type="button" class="btn btn-ghost" id="send-another-btn">Send another</button>
+                <a href="transactions.html" class="btn btn-ghost">Track this transfer</a>
+                <a href="dashboard.html" class="btn btn-primary">Back to overview</a>
+              </div>
+            </div>
+          </fieldset>
+
+        </form>
+      </div>
+
+      <!-- ================= THE LEDGER (signature sticky summary) ================= -->
+      <aside class="send-aside" aria-label="Transfer summary">
+        <div class="ledger" id="ledger">
+          <div class="ledger-head">
+            <span class="ledger-eyebrow" id="ledger-eyebrow">Transfer ledger</span>
+            <svg class="ledger-mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+              <circle cx="20" cy="20" r="16" stroke="currentColor" stroke-width="1.2"/>
+              <ellipse cx="20" cy="20" rx="16" ry="6.4" stroke="currentColor" stroke-width="0.9"/>
+              <line x1="4" y1="20" x2="36" y2="20" stroke="currentColor" stroke-width="0.9"/>
+            </svg>
           </div>
 
-          <p class="field-hint" id="review-error" style="color:var(--red); display:none;"></p>
-
-          <div class="wizard-actions">
-            <button type="button" class="btn btn-ghost wizard-back" data-goto="3">
-              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M13 8H3M7 4 3 8l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              Back
-            </button>
-            <button type="button" class="btn btn-primary" id="confirm-send-btn">
-              <span class="auth-submit-label">Confirm &amp; send</span>
-            </button>
-          </div>
-        </fieldset>
-
-        <!-- ===================== STEP 5 — SUCCESS ===================== -->
-        <fieldset class="wizard-panel" data-panel="5">
-          <legend class="sr-only">Transfer sent</legend>
-
-          <div class="transfer-success">
-            <span class="transfer-success-icon">
-              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5 10 17l9-10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div class="ledger-recipient">
+            <span class="avatar-initial" id="ledger-avatar">·</span>
+            <div class="ledger-recipient-text">
+              <strong id="ledger-name">Add a recipient</strong>
+              <span id="ledger-meta">Their details will appear here</span>
+            </div>
+            <span class="ledger-seal-badge" id="ledger-seal">
+              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5 6.5 12 13 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </span>
-            <h2 id="success-heading">Transfer sent</h2>
-            <p id="success-message">Your money is on its way.</p>
+          </div>
 
-            <div class="wizard-review-card">
-              <div class="wizard-review-row">
-                <span>Reference</span>
-                <strong id="success-reference">—</strong>
-                <button type="button" class="wizard-edit-link" id="copy-reference-btn" style="color:var(--brass-dark);">Copy</button>
-              </div>
-              <div class="wizard-review-row">
-                <span>Status</span>
-                <strong id="success-status">Processing</strong>
-              </div>
-              <div class="wizard-review-row">
-                <span>Available balance</span>
-                <strong id="success-balance">—</strong>
-              </div>
+          <div class="ledger-perforation"></div>
+
+          <div class="ledger-amounts">
+            <div class="ledger-amount-block">
+              <span>You send</span>
+              <strong id="ledger-send-amount">—</strong>
             </div>
-
-            <div class="transfer-success-actions">
-              <button type="button" class="btn btn-ghost" id="send-another-btn">Send another</button>
-              <a href="transactions.html" class="btn btn-ghost">Track this transfer</a>
-              <a href="dashboard.html" class="btn btn-primary">Back to overview</a>
+            <svg class="ledger-arrow" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h12M11 6l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <div class="ledger-amount-block" style="text-align:right;">
+              <span>They receive</span>
+              <strong id="ledger-receive-amount">—</strong>
             </div>
           </div>
-        </fieldset>
 
-      </form>
+          <div class="ledger-perforation"></div>
+
+          <div class="ledger-rows">
+            <div class="ledger-row"><span>Exchange rate</span><span id="ledger-rate">—</span></div>
+            <div class="ledger-row"><span>Transfer fee</span><span id="ledger-fee">—</span></div>
+            <div class="ledger-row"><span>Arrives</span><span id="ledger-arrives">—</span></div>
+            <div class="ledger-row"><span>Available balance</span><span id="ledger-available">—</span></div>
+            <div class="ledger-row"><span>Remaining after send</span><span id="ledger-remaining">—</span></div>
+            <div class="ledger-row ledger-row--total"><span>Total debit</span><span id="ledger-total">—</span></div>
+          </div>
+
+          <div class="ledger-foot">
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2.5 17 6v5c0 4.2-2.9 7.4-7 8.5-4.1-1.1-7-4.3-7-8.5V6l7-3.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+            <span id="ledger-foot-text">Verified before every send</span>
+          </div>
+
+          <span class="ledger-stamp" id="ledger-stamp">SENT ✓</span>
+        </div>
+      </aside>
     </div>
+
   </div>
 </main>
 
