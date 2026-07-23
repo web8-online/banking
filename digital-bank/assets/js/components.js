@@ -20,10 +20,18 @@
    placeholder, marks the current page's nav link active, and fires
    a `component:loaded` event so other modules (auth-ui.js) can hook
    in once the real DOM exists.
+
+   FIX: this module previously never actually booted the
+   notification bell — the comment block in app-navbar.html claimed
+   loadComponents() did this automatically, but no code here called
+   initNotificationCenter(). Section 3 below (bootNotificationCenter)
+   is the piece that was missing: once app-navbar has been injected,
+   it looks up the signed-in user via supabase/auth.js and wires the
+   bell up for real.
    ============================================================= */
 
 /* -----------------------------------------------------------
-   Manifest — which placeholder loads which partial.
+   1. Manifest — which placeholder loads which partial.
    Paths are relative to the page importing this module, so pages
    under /pages/ and the root index.html both resolve correctly
    because each page's own <script> passes its own base if needed.
@@ -42,6 +50,18 @@ function resolveComponentsBase() {
   const path = window.location.pathname;
   const inPagesDir = path.includes('/pages/');
   return inPagesDir ? '../components/' : 'components/';
+}
+
+/**
+ * Resolves the supabase/ directory the same way — used only by
+ * bootNotificationCenter() below to reach supabase/auth.js. This
+ * mirrors resolveComponentsBase() rather than reusing it, since it
+ * needs a different relative prefix (supabase/ vs components/).
+ */
+function resolveSupabaseBase() {
+  const path = window.location.pathname;
+  const inPagesDir = path.includes('/pages/');
+  return inPagesDir ? '../supabase/' : 'supabase/';
 }
 
 /**
@@ -95,22 +115,61 @@ function markActiveNavLink() {
 }
 
 /**
+ * If app-navbar was one of the components just injected, look up the
+ * signed-in user and boot the notification bell against it. Silently
+ * does nothing on pages that don't render app-navbar (marketing
+ * pages), and logs — rather than throws — if auth or notifications
+ * fail to load, so a broken bell never takes the rest of the page
+ * down with it.
+ */
+async function bootNotificationCenter(loadedNames) {
+  if (!loadedNames.includes('app-navbar')) return;
+
+  try {
+    const supabaseBase = resolveSupabaseBase();
+    const { getCurrentUser } = await import(`${supabaseBase}auth.js`);
+
+    const { data: user, error } = await getCurrentUser();
+    if (error || !user?.id) {
+      console.warn('[Meridian] No signed-in user — notification bell left uninitialized.');
+      return;
+    }
+
+    // main.js resolves this the same way pages already load other
+    // assets/js modules, so this path matches the rest of the app
+    // (assets/js/*.js from the project root, or ../assets/js/*.js
+    // from under /pages/).
+    const inPagesDir = window.location.pathname.includes('/pages/');
+    const notificationsPath = inPagesDir ? '../assets/js/notifications.js' : 'assets/js/notifications.js';
+    const { initNotificationCenter } = await import(notificationsPath);
+
+    await initNotificationCenter(user.id);
+  } catch (err) {
+    console.warn('[Meridian] Failed to initialize notification center:', err.message);
+  }
+}
+
+/**
  * Finds every [data-component] placeholder on the page, loads its
- * partial, then marks the active nav link and dispatches
- * `component:loaded` on `document` once everything has settled —
- * auth-ui.js listens for this before touching header elements.
+ * partial, then marks the active nav link, boots the notification
+ * bell (if app-navbar was among the loaded components), and
+ * dispatches `component:loaded` on `document` once everything has
+ * settled — auth-ui.js listens for this before touching header
+ * elements.
  */
 export async function loadComponents() {
   const placeholders = Array.from(document.querySelectorAll('[data-component]'));
   if (!placeholders.length) return;
 
   const base = resolveComponentsBase();
+  const names = placeholders.map((el) => el.getAttribute('data-component'));
 
   await Promise.all(
     placeholders.map((el) => injectComponent(el, el.getAttribute('data-component'), base))
   );
 
   markActiveNavLink();
+  await bootNotificationCenter(names);
   document.dispatchEvent(new CustomEvent('component:loaded'));
 }
 
