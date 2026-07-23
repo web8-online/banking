@@ -280,22 +280,29 @@ export async function getTransactionByReference(reference) {
 
 /**
  * Creates an international/internal transfer via the process_transfer
- * Postgres function (see 006_process_transfer_rpc.sql). That function
- * runs as SECURITY DEFINER — it manually checks you own the sender
- * account (RLS is bypassed inside it, so it enforces that itself),
- * then does the debit, the receiver credit (if any), and the
- * transaction insert as one atomic operation. This replaced an
- * earlier client-side version that updated `accounts` directly in
- * two separate calls: crediting the receiver required reading their
- * account first, which RLS correctly blocks for a different user, and
- * the old code silently swallowed that error instead of failing —
- * meaning the sender was debited but the receiver was never credited,
- * with nothing surfaced to say so.
+ * Postgres function (see 007_process_transfer_by_identifier.sql).
+ * That function runs as SECURITY DEFINER — it checks you own the
+ * sender account itself (RLS is bypassed inside it, so it enforces
+ * that manually), then resolves the receiver one of two ways:
+ *
+ *   - receiverAccountId: pass this only when the caller already
+ *     legitimately knows the id (e.g. transferring between two of
+ *     YOUR OWN accounts, both returned by getMyAccounts()).
+ *   - receiverIdentifier: an account number or IBAN string — used
+ *     for the "send to a beneficiary/typed identifier" flow, where
+ *     the client never has (and never should have) another user's
+ *     real account id. The RPC looks up a match itself, server-side.
+ *
+ * If neither resolves to a real Meridian account, the transfer still
+ * goes through as an external, debit-only transfer (status
+ * 'Processing', no receiver_account) — exactly like a real
+ * international wire to a non-Meridian bank.
  */
-export async function createTransfer({ senderAccountId, receiverAccountId, amount, fee = 0, currency, description }) {
+export async function createTransfer({ senderAccountId, receiverAccountId, receiverIdentifier, amount, fee = 0, currency, description }) {
   const { data, error } = await supabase.rpc('process_transfer', {
     p_sender_account_id: senderAccountId,
     p_receiver_account_id: receiverAccountId || null,
+    p_receiver_identifier: receiverIdentifier || null,
     p_amount: amount,
     p_fee: fee,
     p_currency: currency,
