@@ -110,6 +110,32 @@ function escapeHtml(str) {
   return String(str ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+/**
+ * Toggles visibility of a card/panel two ways at once: the `hidden`
+ * IDL/attribute, AND an inline `display` override.
+ *
+ * Why both: if transfer.html/css gives these cards their own class
+ * with a `display` rule (e.g. `.send-recipient-card { display: flex }`
+ * for the flex layout), that author rule can out-specificity the
+ * browser's built-in `[hidden] { display: none }` UA style — so
+ * setting `el.hidden = true` updates the attribute but the element
+ * stays visually visible. An inline style always wins, so this
+ * can't silently no-op the same way. Also null-safe: if an id
+ * doesn't match what's actually in transfer.html, this logs a
+ * warning instead of throwing and killing the rest of the handler
+ * (a thrown error here would otherwise stop every line after it,
+ * which is one way a "still showing" bug can persist indefinitely).
+ */
+function setCardHidden(elId, isHidden) {
+  const el = document.getElementById(elId);
+  if (!el) {
+    console.warn(`[Meridian] transfer.js expected an element with id="${elId}" but didn't find one — check transfer.html.`);
+    return;
+  }
+  el.hidden = isHidden;
+  el.style.display = isHidden ? 'none' : '';
+}
+
 /* -----------------------------------------------------------
    State
    ----------------------------------------------------------- */
@@ -464,17 +490,18 @@ function showVerifiedCard({ name, bank, account, country, initial }) {
   $('#recipient-verified-account').textContent = account ? maskAccount(account) : '—';
   $('#recipient-verified-country').textContent = country || '—';
   $('#recipient-verified-avatar').textContent = initial || '?';
-  $('#recipient-verified-card').hidden = false;
-  $('#recipient-not-found-card').hidden = true;
-  $('#recipient-manual-fields').hidden = true;
+  setCardHidden('recipient-verified-card', false);
+  setCardHidden('recipient-not-found-card', true);
+  setCardHidden('recipient-manual-fields', true);
 }
 
 function resetNewRecipientUi() {
   verifiedRecipient = null;
-  $('#recipient-verified-card').hidden = true;
-  $('#recipient-not-found-card').hidden = true;
-  $('#recipient-manual-fields').hidden = true;
-  $('#recipient-lookup-status').innerHTML = '';
+  setCardHidden('recipient-verified-card', true);
+  setCardHidden('recipient-not-found-card', true);
+  setCardHidden('recipient-manual-fields', true);
+  const statusEl = $('#recipient-lookup-status');
+  if (statusEl) statusEl.innerHTML = '';
 }
 
 function handleIdentifierInput(event) {
@@ -526,9 +553,10 @@ function handleIdentifierInput(event) {
       statusEl.innerHTML = '';
     } else {
       statusEl.innerHTML = '';
-      $('#recipient-not-found-card').hidden = false;
-      $('#recipient-manual-fields').hidden = false;
-      $('#new-beneficiary-account').value = value;
+      setCardHidden('recipient-not-found-card', false);
+      setCardHidden('recipient-manual-fields', false);
+      const manualAccountInput = $('#new-beneficiary-account');
+      if (manualAccountInput) manualAccountInput.value = value;
     }
     updateStep1ContinueState();
     updateLedger();
