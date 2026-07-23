@@ -206,9 +206,8 @@ export async function removeBeneficiary(beneficiaryId) {
      2. Otherwise check if it belongs to another Meridian user via
         a SECURITY DEFINER RPC (find_account_holder) that returns
         only display_name/bank_name/currency — never an account id.
-        (This RPC must exist in your Supabase project; if it
-        doesn't yet, this call will resolve to a clean error below
-        rather than throwing, so the page still loads.)
+        (This RPC must exist in your Supabase project — see the
+        SQL definition kept alongside this file's setup notes.)
    Returns { data: null } (not an error) when nothing matches, so
    the UI can fall back to manual entry.
    ----------------------------------------------------------- */
@@ -224,15 +223,26 @@ export async function findRecipient(identifier, { beneficiaries = [] } = {}) {
   }
 
   const { data, error } = await supabase.rpc('find_account_holder', { p_identifier: clean });
-  if (error) return { data: null, error: error.message };
-  if (!data) return { data: null, error: null };
+
+  // PGRST202 = "function not found" in PostgREST — treat that like
+  // "no match" rather than a hard error, so a not-yet-deployed RPC
+  // just falls back to manual entry instead of showing a scary red
+  // toast for something that isn't the user's fault.
+  if (error && error.code !== 'PGRST202') return { data: null, error: error.message };
+  if (error || !data) return { data: null, error: null };
+
+  // A Postgres function declared `returns table(...)` comes back
+  // through PostgREST as an array of rows, not a single object —
+  // unwrap it before reading fields off it.
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) return { data: null, error: null };
 
   return {
     data: {
       source: 'internal',
-      display_name: data.display_name,
-      bank_name: data.bank_name || 'Meridian',
-      currency: data.currency,
+      display_name: row.display_name,
+      bank_name: row.bank_name || 'Meridian',
+      currency: row.currency,
     },
     error: null,
   };
@@ -354,9 +364,19 @@ function generateCardNumber(cardType) {
   return `${prefix}${digits(15)}`;
 }
 
+/**
+ * Issues a new card against one of the user's accounts. Cards are
+ * created as 'Pending' — matching the same pending-until-confirmed
+ * pattern user_profiles.account_status already uses — so cards.html
+ * can offer an explicit "Activate card" step via setCardStatus().
+ * Expiry is set 4 years out from issuance.
+ */
 export async function createCard({ accountId, cardType = 'debit', cardHolder, dailyLimit = 1000 }) {
   if (!accountId) return { data: null, error: 'Choose an account for this card.' };
   if (!cardHolder?.trim()) return { data: null, error: 'Cardholder name is required.' };
+
+  const { data: account, error: accountError } = await getAccountById(accountId);
+  if (accountError || !account) return { data: null, error: accountError || 'Account not found.' };
 
   const now = new Date();
   const expiry = new Date(now.getFullYear() + 4, now.getMonth());
