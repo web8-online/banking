@@ -1,0 +1,771 @@
+/* =============================================================
+   MERIDIAN — International Digital Banking
+   Stylesheet: assets/css/investments.css
+   SCOPE: investments.html only. Loaded after dashboard.css, which
+          already provides the app shell, .profile-card,
+          .status-pill, .modal-overlay/.modal-card, .toast-stack,
+          .skeleton, .empty-state, .tab-toggle, and
+          .account-strip-item that this page reuses as-is.
+
+   Load order on investments.html:
+     1. style.css        (tokens, reset, buttons, .field)
+     2. dashboard.css     (app shell, shared widgets)
+     3. investments.css   (this file)
+
+   Contents:
+     1. Page head + quick actions
+     2. Portfolio hero (value, period toggle, P/L)
+     3. Allocation donut (CSS conic-gradient, no chart library)
+     4. Section heads
+     5. Holdings grid
+     6. Watchlist
+     7. Market movers
+     8. Recent activity
+     9. Buy / Sell modal
+     10. Responsive
+   ============================================================= */
+
+/* -------------------------------------------------------------
+   1. Page head + quick actions
+   ------------------------------------------------------------- */
+.investments-main {
+  padding-block: 2.75rem 5rem;
+}
+
+.invest-quick-actions {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.invest-quick-actions .btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* -------------------------------------------------------------
+   2. Portfolio hero
+   ------------------------------------------------------------- */
+.portfolio-hero {
+  background: linear-gradient(155deg, var(--ink) 0%, var(--ink-3) 100%);
+  color: var(--ivory);
+  border-radius: var(--radius-lg);
+  padding: 2.25rem;
+  margin-bottom: 1.75rem;
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 2rem;
+  align-items: center;
+}
+
+.portfolio-hero-value-col {
+  min-width: 0;
+}
+
+.portfolio-hero-label {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(246, 245, 240, 0.5);
+  margin-bottom: 0.6rem;
+}
+
+.portfolio-hero-value {
+  font-family: var(--font-mono);
+  font-size: 2.75rem;
+  font-weight: 500;
+  margin-bottom: 0.85rem;
+  font-feature-settings: 'tnum' 1;
+}
+
+.portfolio-hero-value small {
+  font-size: 1.2rem;
+  color: rgba(246, 245, 240, 0.5);
+  margin-left: 0.35rem;
+}
+
+.portfolio-hero-pl {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(31, 138, 95, 0.18);
+  color: #6fd6a8;
+}
+
+.portfolio-hero-pl.is-negative {
+  background: rgba(192, 69, 59, 0.22);
+  color: #e6948c;
+}
+
+.portfolio-hero-pl svg {
+  width: 13px;
+  height: 13px;
+}
+
+.portfolio-period-toggle {
+  display: inline-flex;
+  gap: 0.2rem;
+  background: rgba(246, 245, 240, 0.07);
+  border: 1px solid var(--line-dark);
+  border-radius: 999px;
+  padding: 0.25rem;
+  margin-top: 1.4rem;
+}
+
+.portfolio-period-btn {
+  border: none;
+  background: transparent;
+  color: rgba(246, 245, 240, 0.6);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.portfolio-period-btn:hover {
+  color: var(--ivory);
+}
+
+.portfolio-period-btn.is-active {
+  background: var(--brass);
+  color: var(--ink);
+}
+
+/* -------------------------------------------------------------
+   3. Allocation donut (CSS conic-gradient)
+   ------------------------------------------------------------- */
+.portfolio-hero-donut-col {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  justify-content: flex-end;
+}
+
+.allocation-donut {
+  position: relative;
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  /* background-image set inline per-render as a conic-gradient by investments.js */
+}
+
+.allocation-donut::after {
+  content: '';
+  position: absolute;
+  inset: 16px;
+  border-radius: 50%;
+  background: var(--ink-3);
+}
+
+.allocation-donut-center {
+  position: absolute;
+  inset: 16px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  z-index: 1;
+}
+
+.allocation-donut-center strong {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+}
+
+.allocation-donut-center span {
+  font-size: 0.62rem;
+  color: rgba(246, 245, 240, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.allocation-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.allocation-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.8rem;
+}
+
+.allocation-legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.allocation-legend-row strong {
+  color: var(--ivory);
+  font-weight: 600;
+}
+
+.allocation-legend-row span {
+  color: rgba(246, 245, 240, 0.55);
+  font-family: var(--font-mono);
+  margin-left: auto;
+  padding-left: 1rem;
+}
+
+/* -------------------------------------------------------------
+   4. Section heads
+   ------------------------------------------------------------- */
+.invest-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.1rem;
+}
+
+.invest-section-head h2 {
+  font-size: 1.15rem;
+}
+
+.invest-section {
+  margin-bottom: 2.25rem;
+}
+
+/* -------------------------------------------------------------
+   5. Holdings grid
+   ------------------------------------------------------------- */
+.holdings-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.holding-card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.holding-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-card);
+  border-color: rgba(181, 138, 68, 0.35);
+}
+
+.holding-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.1rem;
+}
+
+.holding-coin-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--ivory);
+  object-fit: cover;
+}
+
+.holding-coin-icon--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.78rem;
+  color: var(--slate-dark);
+}
+
+.holding-card-head > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.holding-card-head strong {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+.holding-card-head span {
+  font-size: 0.78rem;
+  color: var(--slate);
+  font-family: var(--font-mono);
+}
+
+.holding-value {
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 0.4rem;
+}
+
+.holding-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+}
+
+.holding-pl {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--green);
+}
+
+.holding-pl.is-negative {
+  color: var(--red);
+}
+
+.holding-qty {
+  color: var(--slate);
+  font-family: var(--font-mono);
+}
+
+/* -------------------------------------------------------------
+   6. Watchlist
+   ------------------------------------------------------------- */
+.watchlist-add-row {
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+}
+
+.watchlist-add-row .tx-search {
+  flex: 1;
+}
+
+.watchlist-suggestions {
+  position: relative;
+}
+
+.watchlist-suggestions-list {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  right: 0;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  max-height: 260px;
+  overflow-y: auto;
+  z-index: 60;
+  display: none;
+}
+
+.watchlist-suggestions-list.is-open {
+  display: block;
+}
+
+.watchlist-suggestion-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.7rem 0.9rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.86rem;
+}
+
+.watchlist-suggestion-item:hover {
+  background: var(--ivory);
+}
+
+.watchlist-grid {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.watchlist-card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 1.1rem;
+  position: relative;
+}
+
+.watchlist-card-remove {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--slate);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.watchlist-card-remove:hover {
+  background: var(--red-bg);
+  color: var(--red);
+}
+
+.watchlist-card-remove svg {
+  width: 11px;
+  height: 11px;
+}
+
+.watchlist-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+
+.watchlist-card-head strong {
+  display: block;
+  font-size: 0.86rem;
+  color: var(--ink);
+}
+
+.watchlist-card-head span {
+  font-size: 0.72rem;
+  color: var(--slate);
+}
+
+.watchlist-card-price {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 0.35rem;
+}
+
+.watchlist-card-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--green);
+}
+
+.watchlist-card-change.is-negative {
+  color: var(--red);
+}
+
+.watchlist-card-change svg {
+  width: 10px;
+  height: 10px;
+}
+
+/* -------------------------------------------------------------
+   7. Market movers
+   ------------------------------------------------------------- */
+.market-movers-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.market-mover-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 1rem;
+  padding-block: 0.9rem;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.market-mover-row:hover {
+  background: var(--ivory);
+}
+
+.market-mover-row:last-child {
+  border-bottom: none;
+}
+
+.market-mover-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.market-mover-name strong {
+  display: block;
+  font-size: 0.88rem;
+  color: var(--ink);
+}
+
+.market-mover-name span {
+  font-size: 0.76rem;
+  color: var(--slate);
+}
+
+.market-mover-price {
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.market-mover-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--green);
+  justify-self: end;
+}
+
+.market-mover-change.is-negative {
+  color: var(--red);
+}
+
+.market-mover-change svg {
+  width: 10px;
+  height: 10px;
+}
+
+/* -------------------------------------------------------------
+   8. Recent activity
+   ------------------------------------------------------------- */
+.invest-activity-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.invest-activity-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 0.9rem;
+  padding-block: 0.85rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.invest-activity-row:last-child {
+  border-bottom: none;
+}
+
+.invest-activity-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.invest-activity-icon.is-buy {
+  background: var(--green-bg);
+  color: var(--green);
+}
+
+.invest-activity-icon.is-sell {
+  background: var(--amber-bg);
+  color: var(--amber);
+}
+
+.invest-activity-main strong {
+  display: block;
+  font-size: 0.88rem;
+  color: var(--ink);
+}
+
+.invest-activity-main span {
+  font-size: 0.78rem;
+  color: var(--slate);
+}
+
+.invest-activity-amount {
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.invest-activity-time {
+  font-size: 0.76rem;
+  color: var(--slate);
+  white-space: nowrap;
+}
+
+/* -------------------------------------------------------------
+   9. Buy / Sell modal
+   ------------------------------------------------------------- */
+.trade-modal-asset {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1.1rem;
+  background: var(--ivory);
+  border-radius: var(--radius-md);
+  margin-bottom: 1.5rem;
+}
+
+.trade-modal-asset img,
+.trade-modal-asset .holding-coin-icon--fallback {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.trade-modal-asset strong {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+.trade-modal-asset span {
+  font-size: 0.8rem;
+  color: var(--slate);
+  font-family: var(--font-mono);
+}
+
+.trade-side-toggle {
+  display: inline-flex;
+  width: 100%;
+  gap: 0.25rem;
+  background: var(--ivory);
+  border-radius: 999px;
+  padding: 0.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.trade-side-btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 0.65rem;
+  border-radius: 999px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--slate);
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.trade-side-btn.is-active[data-side="buy"] {
+  background: var(--green);
+  color: var(--ivory);
+}
+
+.trade-side-btn.is-active[data-side="sell"] {
+  background: var(--red);
+  color: var(--ivory);
+}
+
+.trade-qty-field input {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.trade-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin: 1.25rem 0;
+}
+
+.trade-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.86rem;
+  color: var(--slate-dark);
+  padding-block: 0.5rem;
+}
+
+.trade-summary-row span:first-child {
+  color: var(--slate);
+}
+
+.trade-summary-row.is-total {
+  border-top: 1px dashed var(--line);
+  margin-top: 0.3rem;
+  padding-top: 0.85rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.trade-summary-row.is-total span:first-child {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* -------------------------------------------------------------
+   10. Responsive
+   ------------------------------------------------------------- */
+@media (max-width: 1180px) {
+  .holdings-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .watchlist-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 980px) {
+  .portfolio-hero {
+    grid-template-columns: 1fr;
+  }
+  .portfolio-hero-donut-col {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 720px) {
+  .holdings-grid,
+  .watchlist-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .market-mover-row {
+    grid-template-columns: auto 1fr auto;
+  }
+  .market-mover-price {
+    display: none;
+  }
+  .invest-quick-actions {
+    width: 100%;
+  }
+  .invest-quick-actions .btn {
+    flex: 1;
+  }
+  .portfolio-hero-value {
+    font-size: 2.1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .holdings-grid,
+  .watchlist-grid {
+    grid-template-columns: 1fr;
+  }
+  .portfolio-hero-donut-col {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
