@@ -5,7 +5,8 @@
    Thin, typed-in-spirit wrappers around the tables defined in the
    project's schema.sql (accounts, transactions, beneficiaries,
    cards, savings_goals, notifications, support_tickets,
-   exchange_rates, user_profiles). Same contract as auth.js: every
+   exchange_rates, user_profiles, investments, investment_orders,
+   watchlist, market_prices_cache). Same contract as auth.js: every
    exported function returns a plain { data, error } object, so
    callers never need try/catch for expected failures.
 
@@ -487,4 +488,280 @@ export async function getExchangeRate(baseCurrency, targetCurrency) {
 
 export async function getAllExchangeRates(baseCurrency = 'USD') {
   return wrap(supabase.from('exchange_rates').select('*').eq('base_currency', baseCurrency));
+}
+
+/* -----------------------------------------------------------
+   Investments — market prices (crypto, via market_prices_cache)
+   -----------------------------------------------------------
+   The browser never calls CoinGecko directly. It reads
+   market_prices_cache, and if the cache looks stale (nothing
+   updated in the last ~2 minutes) it invokes the
+   refresh-crypto-prices Edge Function once, then re-reads the
+   table. That Function runs with the service_role key and is the
+   only thing allowed to write to this table — see the RLS policy
+   in investments_schema.sql.
+   ----------------------------------------------------------- */
+
+const PRICE_STALE_MS = 2 * 60 * 1000;
+
+export async function getMarketPrices() {
+  const { data: rows, error } = await wrap(
+    supabase.from('market_prices_cache').select('*').order('market_cap', { ascending: false, nullsFirst: false })
+  );
+  if (error) return { data: [], error };
+
+  const newestUpdate = rows.reduce((max, r) => Math.max(max, new Date(r.updated_at || 0).getTime()), 0);
+  const isStale = !rows.length || Date.now() - newestUpdate > PRICE_STALE_MS;
+  if (!isStale) return { data: rows, error: null };
+
+  try {
+    const { error: fnError } = await supabase.functions.invoke('refresh-crypto-prices');
+    if (fnError) throw fnError;
+    return wrap(supabase.from('market_prices_cache').select('*').order('market_cap', { ascending: false, nullsFirst: false }));
+  } catch (fnErr) {
+    // Refresh failed (rate-limited, offline, function not deployed yet) —
+    // show what we have rather than an empty market page.
+    return { data: rows, error: rows.length ? null : (fnErr?.message || 'Could not load live prices.') };
+  }
+}
+
+export async function getMarketPrice(symbol) {
+  return wrap(supabase.from('market_prices_cache').select('*').eq('symbol', symbol).maybeSingle());
+}
+
+/* -----------------------------------------------------------
+   Investments — holdings & order history
+   ----------------------------------------------------------- */
+
+/** Every open position (quantity > 0) across all of the user's accounts. */
+export async function getMyInvestments(userId) {
+  const { data: accounts, error: accError } = await getMyAccounts(userId);
+  if (accError) return { data: [], error: accError };
+  const accountIds = accounts.map((a) => a.id);
+  if (!accountIds.length) return { data: [], error: null };
+
+  return wrap(
+    supabase
+      .from('investments')
+      .select('*')
+      .in('account_id', accountIds)
+      .gt('quantity', 0)
+      .order('updated_at', { ascending: false })
+  );
+}
+
+/** Buy/sell history across all of the user's accounts. */
+export async function getInvestmentOrders(userId, { limit = 25 } = {}) {
+  const { data: accounts, error: accError } = await getMyAccounts(userId);
+  if (accError) return { data: [], error: accError };
+  const accountIds = accounts.map((a) => a.id);
+  if (!accountIds.length) return { data: [], error: null };
+
+  return wrap(
+    supabase
+      .from('investment_orders')
+      .select('*')
+      .in('account_id', accountIds)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+  );
+}
+
+/* -----------------------------------------------------------
+   Investments — watchlist
+   ----------------------------------------------------------- */
+
+export async function getWatchlist(userId) {
+  const uid = await resolveUserId(userId);
+  if (!uid) return { data: [], error: 'Not signed in.' };
+  return wrap(supabase.from('watchlist').select('*').eq('user_id', uid).order('created_at', { ascending: false }));
+}
+
+export async function addToWatchlist({ symbol, name, assetType = 'crypto', userId }) {
+  const uid = await resolveUserId(userId);
+  if (!uid) return { data: null, error: 'Not signed in.' };
+  return wrap(
+    supabase
+      .from('watchlist')
+      .insert({ user_id: uid, symbol, name, asset_type: assetType })
+      .select()
+      .single()
+  );
+}
+
+export async function removeFromWatchlist(watchlistId) {
+  return wrap(supabase.from('watchlist').delete().eq('id', watchlistId));
+}
+
+/* -----------------------------------------------------------
+   Investments — buy / sell
+   -----------------------------------------------------------
+   DEMO-ONLY FEE MODEL, same shape as createTransfer()'s (well —
+   this one's older sibling; createTransfer() has since moved to
+   the process_transfer RPC above, and buy/sell should eventually
+   follow the same pattern): a small percentage with a floor, not
+   a real brokerage fee schedule.
+
+   NOT ATOMIC, same caveat createTransfer() used to carry: each of
+   these does an account balance update, an investments upsert, and
+   an investment_orders insert as separate calls. For production,
+   wrap all three in a single supabase.rpc(...) call the same way
+   process_transfer() now does for transfers.
+
+   Prices are always looked up in USD (that's what CoinGecko and
+   this cache store) and converted into the funding account's own
+   currency via getExchangeRate() before touching its balance.
+   ----------------------------------------------------------- */
+
+function computeTradeFee(amount) {
+  return Math.max(0.99, +(Math.max(0, Number(amount)) * 0.0015).toFixed(2));
+}
+
+export async function buyInvestment({ accountId, symbol, name, assetType = 'crypto', quantity, pricePerUnit, userId }) {
+  const uid = await resolveUserId(userId);
+  if (!uid) return { data: null, error: 'Not signed in.' };
+
+  const qty = Number(quantity);
+  const price = Number(pricePerUnit);
+  if (!qty || qty <= 0) return { data: null, error: 'Enter a quantity greater than zero.' };
+  if (!price || price <= 0) return { data: null, error: 'Missing a live price for this asset — try again in a moment.' };
+
+  const { data: account, error: accError } = await getAccountById(accountId);
+  if (accError || !account) return { data: null, error: accError || 'Account not found.' };
+
+  const usdAmount = qty * price;
+  const { data: rateData } = await getExchangeRate('USD', account.currency);
+  const rate = Number(rateData?.exchange_rate ?? 1);
+  const settleAmount = usdAmount * rate;
+  const fee = computeTradeFee(settleAmount);
+  const totalDebit = settleAmount + fee;
+
+  if (Number(account.available_balance) < totalDebit) {
+    return { data: null, error: `Insufficient funds — this purchase needs ${account.currency} ${totalDebit.toFixed(2)}.` };
+  }
+
+  await supabase
+    .from('accounts')
+    .update({
+      balance: Number(account.balance) - totalDebit,
+      available_balance: Number(account.available_balance) - totalDebit,
+    })
+    .eq('id', accountId);
+
+  const { data: existing } = await supabase
+    .from('investments')
+    .select('*')
+    .eq('account_id', accountId)
+    .eq('symbol', symbol)
+    .maybeSingle();
+
+  const newQuantity = Number(existing?.quantity || 0) + qty;
+  const newInvested = Number(existing?.invested_amount || 0) + settleAmount;
+
+  const { error: upsertError } = await supabase.from('investments').upsert(
+    {
+      account_id: accountId,
+      symbol,
+      name,
+      asset_type: assetType,
+      quantity: newQuantity,
+      invested_amount: newInvested,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'account_id,symbol' }
+  );
+  if (upsertError) return { data: null, error: upsertError.message };
+
+  return wrap(
+    supabase
+      .from('investment_orders')
+      .insert({
+        account_id: accountId,
+        symbol,
+        name,
+        asset_type: assetType,
+        side: 'buy',
+        quantity: qty,
+        price_per_unit: price,
+        amount: settleAmount,
+        fee,
+        status: 'Completed',
+      })
+      .select()
+      .single()
+  );
+}
+
+export async function sellInvestment({ accountId, symbol, name, assetType = 'crypto', quantity, pricePerUnit, userId }) {
+  const uid = await resolveUserId(userId);
+  if (!uid) return { data: null, error: 'Not signed in.' };
+
+  const qty = Number(quantity);
+  const price = Number(pricePerUnit);
+  if (!qty || qty <= 0) return { data: null, error: 'Enter a quantity greater than zero.' };
+  if (!price || price <= 0) return { data: null, error: 'Missing a live price for this asset — try again in a moment.' };
+
+  const { data: position, error: posError } = await supabase
+    .from('investments')
+    .select('*')
+    .eq('account_id', accountId)
+    .eq('symbol', symbol)
+    .maybeSingle();
+  if (posError) return { data: null, error: posError.message };
+  if (!position || Number(position.quantity) < qty) {
+    return { data: null, error: `You only hold ${Number(position?.quantity || 0)} ${symbol}.` };
+  }
+
+  const { data: account, error: accError } = await getAccountById(accountId);
+  if (accError || !account) return { data: null, error: accError || 'Account not found.' };
+
+  const usdAmount = qty * price;
+  const { data: rateData } = await getExchangeRate('USD', account.currency);
+  const rate = Number(rateData?.exchange_rate ?? 1);
+  const grossProceeds = usdAmount * rate;
+  const fee = computeTradeFee(grossProceeds);
+  const netProceeds = grossProceeds - fee;
+
+  await supabase
+    .from('accounts')
+    .update({
+      balance: Number(account.balance) + netProceeds,
+      available_balance: Number(account.available_balance) + netProceeds,
+    })
+    .eq('id', accountId);
+
+  const remainingQuantity = Number(position.quantity) - qty;
+  // Cost basis leaves the position proportionally to how much was sold,
+  // so profit/loss on what's left keeps making sense after a partial sell.
+  const remainingInvested = remainingQuantity > 0
+    ? Number(position.invested_amount || 0) * (remainingQuantity / Number(position.quantity))
+    : 0;
+
+  if (remainingQuantity <= 0) {
+    await supabase.from('investments').delete().eq('id', position.id);
+  } else {
+    await supabase
+      .from('investments')
+      .update({ quantity: remainingQuantity, invested_amount: remainingInvested, updated_at: new Date().toISOString() })
+      .eq('id', position.id);
+  }
+
+  return wrap(
+    supabase
+      .from('investment_orders')
+      .insert({
+        account_id: accountId,
+        symbol,
+        name,
+        asset_type: assetType,
+        side: 'sell',
+        quantity: qty,
+        price_per_unit: price,
+        amount: grossProceeds,
+        fee,
+        status: 'Completed',
+      })
+      .select()
+      .single()
+  );
 }
