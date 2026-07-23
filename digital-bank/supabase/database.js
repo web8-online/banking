@@ -198,6 +198,47 @@ export async function removeBeneficiary(beneficiaryId) {
 }
 
 /* -----------------------------------------------------------
+   Recipient lookup (used by transfer.js's new-recipient flow)
+   -----------------------------------------------------------
+   Tries to auto-identify who an account number/IBAN belongs to,
+   without ever exposing another user's full account row:
+     1. Check the caller's own saved beneficiaries for a match.
+     2. Otherwise check if it belongs to another Meridian user via
+        a SECURITY DEFINER RPC (find_account_holder) that returns
+        only display_name/bank_name/currency — never an account id.
+        (This RPC must exist in your Supabase project; if it
+        doesn't yet, this call will resolve to a clean error below
+        rather than throwing, so the page still loads.)
+   Returns { data: null } (not an error) when nothing matches, so
+   the UI can fall back to manual entry.
+   ----------------------------------------------------------- */
+export async function findRecipient(identifier, { beneficiaries = [] } = {}) {
+  const clean = String(identifier || '').replace(/\s+/g, '').toUpperCase();
+  if (!clean) return { data: null, error: null };
+
+  const savedMatch = beneficiaries.find(
+    (b) => b.account_number && String(b.account_number).replace(/\s+/g, '').toUpperCase() === clean
+  );
+  if (savedMatch) {
+    return { data: { source: 'beneficiary', beneficiary: savedMatch }, error: null };
+  }
+
+  const { data, error } = await supabase.rpc('find_account_holder', { p_identifier: clean });
+  if (error) return { data: null, error: error.message };
+  if (!data) return { data: null, error: null };
+
+  return {
+    data: {
+      source: 'internal',
+      display_name: data.display_name,
+      bank_name: data.bank_name || 'Meridian',
+      currency: data.currency,
+    },
+    error: null,
+  };
+}
+
+/* -----------------------------------------------------------
    Transactions
    ----------------------------------------------------------- */
 
