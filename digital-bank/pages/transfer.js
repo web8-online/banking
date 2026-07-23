@@ -5,24 +5,40 @@
      1. Auth guard + shared app-header bits (same pattern as
         accounts.js: avatar initial, name, notification badge,
         user menu, log out)
-     2. A 4-step wizard: Recipient -> Amount -> Review -> Done
-     3. Recipient step: saved beneficiaries (search + select),
-        a "Recent" one-tap strip (client-side, via localStorage —
-        purely a UI convenience, not synced anywhere), and a new-
-        recipient flow that auto-verifies an account number/IBAN
-        via findRecipient() before falling back to manual entry
-     4. Amount step: a from-account picker, live currency
-        conversion via getExchangeRate(), a transparent fee
-        breakdown, a delivery-speed choice, and optional scheduling
-     5. Review step: an editable summary + a 2FA code for larger
-        sends (demo-only — see the note by handleConfirmSend)
-     6. Send: addBeneficiary() (if the recipient is new and the
+     2. A 5-step wizard: Recipient -> Details -> Review -> Verify
+        -> Done
+     3. Recipient step: a single account-number/IBAN field that
+        auto-verifies via findRecipient() and shows a full
+        verification card (name, bank, masked account, country,
+        status) or a not-found state with manual fallback fields.
+        Saved beneficiaries + a "recent" one-tap strip live in a
+        collapsed secondary section so the primary flow only ever
+        asks for one thing at a time.
+     4. Details step: a from-account picker, live currency
+        conversion via getExchangeRate(), a live fee/balance
+        summary that updates as you type, transfer type, purpose,
+        and optional scheduling.
+     5. Review step: a read-only summary — edits happen by going
+        back to the relevant step, never inline here.
+     6. Verify step: since no OTP/2FA delivery exists yet (that's
+        pending the admin dashboard), this re-confirms identity by
+        checking the signed-in user's password via
+        verifyCurrentPassword(). Locks after repeated failures.
+        Swap this step over to real OTP once that's ready — see
+        the TODO by handleConfirmSend().
+     7. Send: addBeneficiary() (if the recipient is new and the
         user opted to save them) + createTransfer(), then a
-        success screen with the real reference number
+        success screen with the real reference number.
+
+     Throughout steps 2-4, a small floating card (mirrors the
+     marketing homepage's floating balance-card motif) keeps the
+     recipient + amount visible so the transfer never feels
+     abstract — see #transfer-preview-float.
    ============================================================= */
 
 import { signOutUser } from '../supabase/auth.js';
 import { guardPage } from '../supabase/page-guard.js';
+import { verifyCurrentPassword } from '../supabase/auth.js';
 import {
   getMyProfile,
   getUnreadNotificationCount,
@@ -41,6 +57,10 @@ const CURRENCY_SYMBOLS = {
   USD: '$', EUR: '€', GBP: '£', SGD: 'S$', JPY: '¥', NGN: '₦', CAD: 'C$', AUD: 'A$', CHF: 'CHF',
 };
 const RECENT_RECIPIENTS_KEY = 'meridian_recent_recipients';
+const TOTAL_STEPS = 5;
+const STEP_LABELS = ['Recipient', 'Details', 'Review', 'Verify', 'Done'];
+const MAX_AUTH_ATTEMPTS = 5;
+const AUTH_LOCKOUT_MS = 60000;
 
 function currencySymbol(code) {
   return CURRENCY_SYMBOLS[code] || code || '';
@@ -61,10 +81,11 @@ let accounts = [];
 let beneficiaries = [];
 let currentStep = 1;
 let selectedFromAccountId = null;
-let recipientMode = 'existing'; // 'existing' | 'new'
-let selectedBeneficiary = null;
+let selectedBeneficiary = null; // chosen from the saved-beneficiaries list
 let verifiedRecipient = null; // { source: 'beneficiary', beneficiary } | { source: 'internal', display_name, bank_name, currency }
 let identifierLookupTimer = null;
+let authFailedAttempts = 0;
+let authLockedUntil = 0;
 
 /* -----------------------------------------------------------
    Toasts (same pattern as accounts.js)
@@ -164,8 +185,6 @@ function initLogout() {
 /* -----------------------------------------------------------
    Wizard navigation
    ----------------------------------------------------------- */
-const STEP_LABELS = ['Recipient', 'Amount', 'Review', 'Done'];
-
 function goToStep(n) {
   currentStep = n;
   $$('.wizard-panel').forEach((panel) => panel.classList.toggle('is-active', Number(panel.dataset.panel) === n));
@@ -174,11 +193,17 @@ function goToStep(n) {
     step.classList.toggle('is-active', stepNum === n);
     step.classList.toggle('is-complete', stepNum < n);
   });
-  $('#wizard-step-current').textContent = n;
-  $('#wizard-step-label').textContent = STEP_LABELS[n - 1];
 
-  if (n === 2) recalcConversion();
-  if (n === 3) populateReview();
+  const fill = $('#wizard-progress-fill');
+  if (fill) fill.style.width = `${((n - 1) / (TOTAL_STEPS - 1)) * 100}%`;
+
+  if (n === 2) {
+    recalcConversion();
+    updateStep2Header();
+  }
+  if (n === 3 || n === 4) populateReviewAndVerify();
+
+  updatePreviewFloat();
 
   const card = $('.transfer-card');
   if (card) window.scrollTo({ top: card.getBoundingClientRect().top + window.scrollY - 90, behavior: 'smooth' });
@@ -194,27 +219,32 @@ function wireRadioGroup(name) {
 }
 
 /* -----------------------------------------------------------
-   Recipient step — tabs
+   Floating live-preview card
    ----------------------------------------------------------- */
-function initRecipientTabs() {
-  const tabButtons = $$('.tab-toggle-btn[data-recipient-tab]');
-  tabButtons.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      tabButtons.forEach((b) => {
-        b.classList.remove('is-active');
-        b.setAttribute('aria-selected', 'false');
-      });
-      btn.classList.add('is-active');
-      btn.setAttribute('aria-selected', 'true');
-      recipientMode = btn.dataset.recipientTab;
-      $$('.recipient-tab-panel').forEach((panel) => {
-        const match = panel.dataset.recipientPanel === recipientMode;
-        panel.classList.toggle('is-active', match);
-        panel.hidden = !match;
-      });
-      updateStep1ContinueState();
-    });
-  });
+function updatePreviewFloat() {
+  const floatEl = $('#transfer-preview-float');
+  if (!floatEl) return;
+
+  const show = currentStep >= 2 && currentStep <= 4;
+  if (!show) {
+    floatEl.classList.remove('is-visible');
+    floatEl.hidden = true;
+    return;
+  }
+
+  floatEl.hidden = false;
+  requestAnimationFrame(() => floatEl.classList.add('is-visible'));
+
+  const recipient = getRecipientSummary();
+  const fromAccount = currentFromAccount();
+  const sendAmount = Number($('#transfer-send-amount')?.value) || 0;
+
+  $('#preview-avatar').textContent = (recipient.name || '?').trim().charAt(0).toUpperCase() || '?';
+  $('#preview-name').textContent = recipient.name || 'Recipient';
+  $('#preview-meta').textContent = recipient.meta || '\u2014';
+  $('#preview-amount').textContent = fromAccount
+    ? `${currencySymbol(fromAccount.currency)}${formatAmount(sendAmount)}`
+    : formatAmount(sendAmount);
 }
 
 /* -----------------------------------------------------------
@@ -246,7 +276,7 @@ function renderBeneficiaryList(filterText = '') {
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M4.5 19.5c0-3.6 3.4-6 7.5-6s7.5 2.4 7.5 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
         </div>
         <h3>No saved beneficiaries yet</h3>
-        <p>Add a new recipient — you'll be able to save them here for next time.</p>
+        <p>Add a recipient above — you'll be able to choose them here next time.</p>
       </div>
     `;
     return;
@@ -283,6 +313,10 @@ function renderBeneficiaryList(filterText = '') {
     card.addEventListener('click', () => {
       const id = card.dataset.beneficiaryId;
       selectedBeneficiary = beneficiaries.find((b) => String(b.id) === id) || null;
+      // A saved beneficiary takes priority over anything typed into the
+      // identifier field — clear that path so the two sources can't disagree.
+      resetNewRecipientUi();
+      $('#recipient-identifier').value = '';
       $$('.beneficiary-card', container).forEach((c) => c.classList.toggle('is-selected', c === card));
       pushRecentRecipient(selectedBeneficiary);
       updateStep1ContinueState();
@@ -344,8 +378,9 @@ function renderRecentStrip() {
     chip.addEventListener('click', () => {
       const b = beneficiaries.find((x) => String(x.id) === chip.dataset.recentId);
       if (!b) return;
-      $('.tab-toggle-btn[data-recipient-tab="existing"]')?.click();
       selectedBeneficiary = b;
+      resetNewRecipientUi();
+      $('#recipient-identifier').value = '';
       $('#beneficiary-search').value = '';
       renderBeneficiaryList('');
       pushRecentRecipient(b);
@@ -357,17 +392,21 @@ function renderRecentStrip() {
 /* -----------------------------------------------------------
    New recipient — account-number auto-verification
    ----------------------------------------------------------- */
-function showVerifiedCard(name, meta, initial) {
+function showVerifiedCard({ name, bank, account, country, initial }) {
   $('#recipient-verified-name').textContent = name || '—';
-  $('#recipient-verified-meta').textContent = meta || '';
+  $('#recipient-verified-bank').textContent = bank || '—';
+  $('#recipient-verified-account').textContent = account ? maskAccount(account) : '—';
+  $('#recipient-verified-country').textContent = country || '—';
   $('#recipient-verified-avatar').textContent = initial || '?';
   $('#recipient-verified-card').hidden = false;
+  $('#recipient-not-found-card').hidden = true;
   $('#recipient-manual-fields').hidden = true;
 }
 
 function resetNewRecipientUi() {
   verifiedRecipient = null;
   $('#recipient-verified-card').hidden = true;
+  $('#recipient-not-found-card').hidden = true;
   $('#recipient-manual-fields').hidden = true;
   $('#recipient-lookup-status').innerHTML = '';
 }
@@ -376,6 +415,9 @@ function handleIdentifierInput(event) {
   const value = event.target.value;
   clearTimeout(identifierLookupTimer);
   resetNewRecipientUi();
+  // Typing a new identifier overrides a previously chosen saved beneficiary.
+  selectedBeneficiary = null;
+  renderBeneficiaryList($('#beneficiary-search')?.value || '');
   updateStep1ContinueState();
 
   if (!value.trim()) return;
@@ -389,14 +431,27 @@ function handleIdentifierInput(event) {
     if (data?.source === 'beneficiary') {
       verifiedRecipient = data;
       const b = data.beneficiary;
-      showVerifiedCard(b.beneficiary_name, `${beneficiarySubtitle(b) || 'Saved recipient'} · you've sent to them before`, beneficiaryInitial(b));
+      showVerifiedCard({
+        name: b.beneficiary_name,
+        bank: b.bank_name,
+        account: b.account_number,
+        country: b.country,
+        initial: beneficiaryInitial(b),
+      });
       statusEl.innerHTML = '';
     } else if (data?.source === 'internal') {
       verifiedRecipient = data;
-      showVerifiedCard(data.display_name, `${data.bank_name} · ${data.currency} Meridian account`, (data.display_name || '?').charAt(0).toUpperCase());
+      showVerifiedCard({
+        name: data.display_name,
+        bank: `${data.bank_name} · ${data.currency} Meridian account`,
+        account: null,
+        country: null,
+        initial: (data.display_name || '?').charAt(0).toUpperCase(),
+      });
       statusEl.innerHTML = '';
     } else {
-      statusEl.innerHTML = `We couldn't verify this automatically — add their details below.`;
+      statusEl.innerHTML = '';
+      $('#recipient-not-found-card').hidden = false;
       $('#recipient-manual-fields').hidden = false;
       $('#new-beneficiary-account').value = value;
     }
@@ -413,20 +468,16 @@ function manualFieldsValid() {
 }
 
 function updateStep1ContinueState() {
-  let valid = false;
-  if (recipientMode === 'existing') {
-    valid = Boolean(selectedBeneficiary);
-  } else {
-    valid = Boolean(verifiedRecipient) || (!$('#recipient-manual-fields').hidden && manualFieldsValid());
-  }
+  const valid = Boolean(selectedBeneficiary) || Boolean(verifiedRecipient) || (!$('#recipient-manual-fields').hidden && manualFieldsValid());
   $('#step1-continue').disabled = !valid;
 }
 
 /** A single normalized view of "who are we sending to", regardless
  *  of which of the three recipient paths (saved / internal-verified
- *  / manual) produced it. Read by the amount, review, and send steps. */
+ *  / manual) produced it. Read by the details, review, verify, and
+ *  send steps. */
 function getRecipientSummary() {
-  if (recipientMode === 'existing' && selectedBeneficiary) {
+  if (selectedBeneficiary) {
     return {
       name: selectedBeneficiary.beneficiary_name,
       meta: beneficiarySubtitle(selectedBeneficiary),
@@ -464,6 +515,12 @@ function getRecipientSummary() {
       country: countrySelect.value,
     },
   };
+}
+
+function updateStep2Header() {
+  const recipient = getRecipientSummary();
+  const el = $('[data-review="beneficiary_inline"]');
+  if (el) el.textContent = recipient.name || 'your recipient';
 }
 
 /* -----------------------------------------------------------
@@ -553,9 +610,12 @@ async function recalcConversion() {
   $('#fee-total').textContent = `${currencySymbol(fromCurrency)}${formatAmount(sendAmount + fee)}`;
   $('#fee-arrives').textContent = speed === 'instant' ? 'Within minutes' : 'Within a few hours';
 
-  const noteEl = $('#balance-note');
   const available = Number(fromAccount?.available_balance ?? fromAccount?.balance ?? 0);
   const total = sendAmount + fee;
+  $('#fee-available').textContent = fromAccount ? `${currencySymbol(fromCurrency)}${formatAmount(available)}` : '—';
+  $('#fee-remaining').textContent = fromAccount ? `${currencySymbol(fromCurrency)}${formatAmount(Math.max(0, available - total))}` : '—';
+
+  const noteEl = $('#balance-note');
   if (fromAccount && total > available) {
     noteEl.textContent = `Insufficient balance — you have ${currencySymbol(fromCurrency)}${formatAmount(available)} available in this account.`;
     noteEl.classList.add('balance-note--warning');
@@ -565,6 +625,8 @@ async function recalcConversion() {
   } else {
     noteEl.textContent = '';
   }
+
+  updatePreviewFloat();
 
   return { fromAccount, fromCurrency, toCurrency, sendAmount, fee, rate, receiveAmount, speed, total, available };
 }
@@ -588,7 +650,7 @@ async function validateStep2() {
 }
 
 /* -----------------------------------------------------------
-   Review step
+   Review + Verify steps
    ----------------------------------------------------------- */
 function formatScheduledDate() {
   const val = $('#schedule-later-datetime').value;
@@ -596,30 +658,40 @@ function formatScheduledDate() {
   return new Date(val).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
-function populateReview() {
+async function populateReviewAndVerify() {
   const recipient = getRecipientSummary();
   const fromAccount = currentFromAccount();
   const sendAmount = Number($('#transfer-send-amount').value) || 0;
   const speed = $('input[name="speed"]:checked')?.value || 'standard';
   const schedule = $('input[name="schedule"]:checked')?.value || 'now';
+  const purpose = $('#transfer-purpose').value;
   const fee = computeFee(sendAmount, speed);
   const receiveAmount = Number($('#transfer-receive-amount').value) || 0;
   const toCurrency = $('#transfer-receive-currency').value;
+  const { data: rateData } = await getExchangeRate(fromAccount?.currency || 'USD', toCurrency);
+  const rate = Number(rateData?.exchange_rate ?? 1);
 
-  $('[data-review="beneficiary"]').textContent = recipient.name || '—';
+  const scheduleText = `${speed === 'instant' ? 'Instant' : 'Standard'} · ${
+    schedule === 'later' ? `Scheduled for ${formatScheduledDate()}` : 'Sending now'
+  }`;
+  const sendAmountText = fromAccount ? `${currencySymbol(fromAccount.currency)}${formatAmount(sendAmount)}` : '—';
+  const feeText = fromAccount ? `${currencySymbol(fromAccount.currency)}${formatAmount(fee)}` : '—';
+  const totalText = fromAccount ? `${currencySymbol(fromAccount.currency)}${formatAmount(sendAmount + fee)}` : '—';
+
   $('[data-review="from_account"]').textContent = fromAccount
     ? `${fromAccount.currency} account · ${currencySymbol(fromAccount.currency)}${formatAmount(fromAccount.available_balance ?? fromAccount.balance)} available`
     : '—';
-  $('[data-review="send_amount"]').textContent = fromAccount ? `${currencySymbol(fromAccount.currency)}${formatAmount(sendAmount)}` : '—';
+  $('[data-review="beneficiary"]').textContent = recipient.name || '—';
+  $('[data-review="send_amount"]').textContent = sendAmountText;
   $('[data-review="receive_amount"]').textContent = `${currencySymbol(toCurrency)}${formatAmount(receiveAmount)}`;
-  $('[data-review="fee"]').textContent = fromAccount ? `${currencySymbol(fromAccount.currency)}${formatAmount(fee)}` : '—';
-  $('[data-review="total"]').textContent = fromAccount ? `${currencySymbol(fromAccount.currency)}${formatAmount(sendAmount + fee)}` : '—';
-  $('[data-review="schedule"]').textContent = `${speed === 'instant' ? 'Instant' : 'Standard'} · ${
-    schedule === 'later' ? `Scheduled for ${formatScheduledDate()}` : 'Sending now'
-  }`;
+  $('[data-review="rate"]').textContent = `1 ${fromAccount?.currency || 'USD'} = ${rate.toFixed(4)} ${toCurrency}`;
+  $('[data-review="fee"]').textContent = feeText;
+  $('[data-review="total"]').textContent = totalText;
+  $('[data-review="purpose"]').textContent = purpose;
+  $('[data-review="schedule"]').textContent = scheduleText;
 
-  const needs2fa = sendAmount > 1000;
-  $('#two-fa-hint').textContent = needs2fa ? 'Required for transfers over $1,000.' : 'Optional — add it if you have one handy.';
+  $('[data-review="verify_amount"]').textContent = `${sendAmountText} (total ${totalText})`;
+  $('[data-review="verify_recipient"]').textContent = recipient.name || '—';
 }
 
 /* -----------------------------------------------------------
@@ -629,32 +701,69 @@ async function handleConfirmSend() {
   const errorEl = $('#review-error');
   errorEl.style.display = 'none';
 
-  const sendAmount = Number($('#transfer-send-amount').value) || 0;
-  const code = $('#transfer-2fa-code').value.trim();
+  const pwErrorEl = $('#auth-password-error');
+  const pwInput = $('#transfer-auth-password');
+  pwErrorEl.textContent = '';
+  pwInput.closest('.field')?.classList.remove('has-error');
 
-  // DEMO-ONLY 2FA: there's no real one-time-code delivery wired up
-  // (that would live alongside the two_factor_method preference on
-  // profile/settings), so any 6-digit code is accepted here. Swap
-  // this for a real verify-code call once that endpoint exists.
-  if (sendAmount > 1000 && !/^\d{6}$/.test(code)) {
-    errorEl.textContent = 'Enter the 6-digit confirmation code to continue.';
-    errorEl.style.display = 'block';
-    $('#transfer-2fa-code').focus();
+  if (authLockedUntil && Date.now() < authLockedUntil) {
+    const secondsLeft = Math.ceil((authLockedUntil - Date.now()) / 1000);
+    pwErrorEl.textContent = `Too many attempts. Try again in ${secondsLeft}s.`;
+    pwInput.closest('.field')?.classList.add('has-error');
     return;
   }
 
+  const btn = $('#confirm-send-btn');
+  btn.disabled = true;
+  btn.querySelector('.auth-submit-label').textContent = 'Verifying…';
+
+  // TEMPORARY AUTH STEP: no OTP/2FA delivery exists yet (that lands
+  // with the admin dashboard), so we re-check the signed-in user's
+  // password as the confirmation step instead. Swap this call for a
+  // real code-verification endpoint once that's ready.
+  const { data: verified, error: verifyError } = await verifyCurrentPassword(pwInput.value);
+
+  if (!verified) {
+    authFailedAttempts += 1;
+    btn.disabled = false;
+    btn.querySelector('.auth-submit-label').textContent = 'Confirm & send';
+    pwInput.closest('.field')?.classList.add('has-error');
+
+    if (authFailedAttempts >= MAX_AUTH_ATTEMPTS) {
+      authLockedUntil = Date.now() + AUTH_LOCKOUT_MS;
+      pwInput.disabled = true;
+      pwErrorEl.textContent = `Too many failed attempts. Try again in ${Math.round(AUTH_LOCKOUT_MS / 1000)}s.`;
+      setTimeout(() => {
+        authFailedAttempts = 0;
+        authLockedUntil = 0;
+        pwInput.disabled = false;
+        pwErrorEl.textContent = '';
+      }, AUTH_LOCKOUT_MS);
+    } else {
+      pwErrorEl.textContent = verifyError || "That password doesn't match your account.";
+      pwInput.value = '';
+      pwInput.focus();
+    }
+    return;
+  }
+
+  authFailedAttempts = 0;
+
+  const sendAmount = Number($('#transfer-send-amount').value) || 0;
   const fromAccount = currentFromAccount();
   if (!fromAccount) {
     showToast('Choose an account to send from first.', 'error');
+    btn.disabled = false;
+    btn.querySelector('.auth-submit-label').textContent = 'Confirm & send';
     return;
   }
 
   const recipient = getRecipientSummary();
-  const fee = computeFee(sendAmount, $('input[name="speed"]:checked')?.value || 'standard');
+  const speed = $('input[name="speed"]:checked')?.value || 'standard';
+  const fee = computeFee(sendAmount, speed);
   const reference = $('#transfer-reference').value.trim();
+  const purpose = $('#transfer-purpose').value;
 
-  const btn = $('#confirm-send-btn');
-  btn.disabled = true;
   btn.querySelector('.auth-submit-label').textContent = 'Sending…';
 
   let beneficiaryRecordId = recipient.beneficiaryId;
@@ -681,7 +790,7 @@ async function handleConfirmSend() {
     amount: sendAmount,
     fee,
     currency: fromAccount.currency,
-    description: reference || `Transfer to ${recipient.name}`,
+    description: reference ? `${purpose} — ${reference}` : `${purpose} transfer to ${recipient.name}`,
   });
 
   btn.disabled = false;
@@ -699,12 +808,16 @@ async function handleConfirmSend() {
     if (saved) pushRecentRecipient(saved);
   }
 
-  const speedLabel = ($('input[name="speed"]:checked')?.value || 'standard') === 'instant' ? 'minutes' : 'a few hours';
+  const speedLabel = speed === 'instant' ? 'minutes' : 'a few hours';
+  const remainingBalance = Number(fromAccount.available_balance ?? fromAccount.balance ?? 0) - (sendAmount + fee);
+
   $('#success-reference').textContent = tx.transaction_reference;
   $('#success-status').textContent = tx.status;
+  $('#success-balance').textContent = `${currencySymbol(fromAccount.currency)}${formatAmount(Math.max(0, remainingBalance))}`;
   $('#success-message').textContent = `${currencySymbol(fromAccount.currency)}${formatAmount(sendAmount)} is on its way to ${recipient.name}. Most transfers arrive within ${speedLabel}.`;
 
-  goToStep(4);
+  pwInput.value = '';
+  goToStep(5);
 }
 
 /* -----------------------------------------------------------
@@ -714,9 +827,12 @@ function resetWizard() {
   selectedBeneficiary = null;
   resetNewRecipientUi();
   $('#transfer-form').reset();
+  $('#recipient-identifier').value = '';
   $('#beneficiary-search').value = '';
-  recipientMode = 'existing';
-  $('.tab-toggle-btn[data-recipient-tab="existing"]')?.click();
+  $('#recipient-saved-toggle').open = false;
+  $('#auth-password-error').textContent = '';
+  authFailedAttempts = 0;
+  authLockedUntil = 0;
   $$('input[name="speed"]').forEach((r) => r.closest('.auth-method-btn')?.classList.toggle('is-selected', r.checked));
   $$('input[name="schedule"]').forEach((r) => r.closest('.auth-method-btn')?.classList.toggle('is-selected', r.checked));
   $('#schedule-later-field').hidden = true;
@@ -741,9 +857,25 @@ function applyQueryParams() {
     const match = beneficiaries.find((b) => String(b.id) === benId);
     if (match) {
       selectedBeneficiary = match;
-      recipientMode = 'existing';
+      const toggle = $('#recipient-saved-toggle');
+      if (toggle) toggle.open = true;
     }
   }
+}
+
+/* -----------------------------------------------------------
+   Password visibility toggle (matches profile.html's pattern)
+   ----------------------------------------------------------- */
+function initPasswordToggle() {
+  const toggle = $('#auth-password-toggle');
+  const input = $('#transfer-auth-password');
+  if (!toggle || !input) return;
+  toggle.addEventListener('click', () => {
+    const showing = toggle.getAttribute('aria-pressed') === 'true';
+    toggle.setAttribute('aria-pressed', String(!showing));
+    input.type = showing ? 'password' : 'text';
+    toggle.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+  });
 }
 
 /* -----------------------------------------------------------
@@ -756,7 +888,7 @@ function applyQueryParams() {
   populateHeader();
   initUserMenu();
   initLogout();
-  initRecipientTabs();
+  initPasswordToggle();
   wireRadioGroup('speed');
   wireRadioGroup('schedule');
 
@@ -770,10 +902,9 @@ function applyQueryParams() {
   $('#beneficiary-search').addEventListener('input', (e) => renderBeneficiaryList(e.target.value));
   $('#recipient-identifier').addEventListener('input', handleIdentifierInput);
   $('#recipient-verified-clear').addEventListener('click', () => {
-    verifiedRecipient = null;
-    $('#recipient-verified-card').hidden = true;
-    $('#recipient-manual-fields').hidden = false;
-    $('#recipient-lookup-status').innerHTML = '';
+    resetNewRecipientUi();
+    $('#recipient-identifier').value = '';
+    $('#recipient-identifier').focus();
     updateStep1ContinueState();
   });
   $$('#recipient-manual-fields input, #recipient-manual-fields select').forEach((el) =>
