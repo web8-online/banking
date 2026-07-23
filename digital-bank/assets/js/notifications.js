@@ -9,13 +9,30 @@
         drops transient messages into it. Works on any page, no
         Supabase needed.
 
-     2. The header notification bell (.app-icon-btn[aria-label="Notifications"]
-        + its .app-icon-btn-badge) on logged-in pages — pulls unread
-        count from the `notifications` table via supabase/database.js,
-        renders a dropdown on click, and subscribes to Supabase
-        Realtime so a new notification appears without a refresh.
+     2. The header notification bell — this now drives the REAL
+        markup already shipped in components/app-navbar.html
+        ([data-notification-bell] and its children), instead of
+        building a second dropdown from scratch. It pulls unread
+        count + recent notifications from the `notifications` table
+        via supabase/database.js, and subscribes to Supabase Realtime
+        so a new notification appears without a refresh.
 
      import { toastSuccess, toastError, initNotificationCenter } from '../assets/js/notifications.js';
+
+   FIXES vs the previous version of this file:
+     - No longer builds a duplicate dropdown and appends it INSIDE
+       the bell <button> (invalid markup, visually clipped). It now
+       finds and drives the dropdown that's already a sibling of the
+       button in app-navbar.html via data-notification-* attributes.
+     - resolveSupabaseBase() no longer guesses based on a `/pages/`
+       segment in the URL — this project has no pages/ directory;
+       every page lives at the project root alongside `supabase/`.
+       If you DO move pages into a subfolder later, update this one
+       function accordingly.
+     - Dynamic imports and every Supabase call are now wrapped in
+       try/catch. A failure shows the existing error state (with the
+       Try again button already in the markup) instead of throwing
+       silently and leaving the bell dead with no console clue.
    ============================================================= */
 
 import { $, $$, formatTimestamp } from './utils.js';
@@ -92,9 +109,14 @@ export const toastInfo = (message, title) => showToast({ type: 'info', title, me
    Header notification bell — logged-in app pages only
    ----------------------------------------------------------- */
 
+/**
+ * Every page in this project lives at the project root, alongside
+ * the `supabase/` folder — there is no `pages/` subdirectory, so the
+ * path is always the same. If pages ever move into a subfolder, this
+ * is the one place to update.
+ */
 function resolveSupabaseBase() {
-  const inPagesDir = window.location.pathname.includes('/pages/');
-  return inPagesDir ? '../supabase/' : 'supabase/';
+  return 'supabase/';
 }
 
 let dbModulePromise = null;
@@ -109,125 +131,199 @@ function loadConfigModule() {
   return configModulePromise;
 }
 
-function findBellButton() {
-  return $$('.app-icon-btn').find((btn) => (btn.getAttribute('aria-label') || '').toLowerCase() === 'notifications');
+/**
+ * Grabs every element the navbar markup already defines for the
+ * bell/dropdown. Returns null if the bell isn't on this page (some
+ * pages may not render the navbar at all), so callers can no-op.
+ */
+function getBellElements() {
+  const wrap = document.querySelector('[data-notification-bell]');
+  if (!wrap) return null;
+
+  const toggle = wrap.querySelector('[data-notification-toggle]');
+  const dropdown = wrap.querySelector('[data-notification-dropdown]');
+  if (!toggle || !dropdown) return null;
+
+  return {
+    wrap,
+    toggle,
+    dropdown,
+    badge: wrap.querySelector('[data-notification-badge]'),
+    body: dropdown.querySelector('[data-notification-body]'),
+    list: dropdown.querySelector('[data-notification-list]'),
+    loading: dropdown.querySelector('[data-notification-loading]'),
+    empty: dropdown.querySelector('[data-notification-empty]'),
+    error: dropdown.querySelector('[data-notification-error]'),
+    retryBtn: dropdown.querySelector('[data-notification-retry]'),
+    markAllBtn: dropdown.querySelector('[data-notification-mark-all]'),
+  };
+}
+
+function showBodyState(els, state) {
+  // state is one of: 'loading' | 'list' | 'empty' | 'error'
+  if (els.loading) els.loading.hidden = state !== 'loading';
+  if (els.list) els.list.hidden = state !== 'list';
+  if (els.empty) els.empty.hidden = state !== 'empty';
+  if (els.error) els.error.hidden = state !== 'error';
 }
 
 function renderNotificationRow(notification) {
   const row = document.createElement('li');
-  row.className = 'chat-menu-item'; // reuses the existing dropdown-row styling from the chat menu
+  row.className = 'notification-row';
   row.dataset.notificationId = notification.id;
+  row.setAttribute('role', 'menuitem');
+  row.tabIndex = 0;
   row.innerHTML = `
-    <span class="chat-menu-item-text">
+    <span class="notification-row-text">
       <span>${notification.title || 'Notification'}</span>
       <small></small>
     </span>
-    ${notification.is_read ? '' : '<span class="chat-menu-item-state" data-state="on">New</span>'}
+    ${notification.is_read ? '' : '<span class="notification-row-state" data-state="on">New</span>'}
   `;
-  $('small', row).textContent = `${notification.message || ''} · ${formatTimestamp(notification.created_at)}`;
+  row.querySelector('small').textContent = `${notification.message || ''} · ${formatTimestamp(notification.created_at)}`;
   return row;
 }
 
-function buildDropdown() {
-  const dropdown = document.createElement('div');
-  dropdown.className = 'app-user-dropdown notification-dropdown';
-  dropdown.setAttribute('role', 'menu');
-  dropdown.style.width = '320px';
-  dropdown.innerHTML = `
-    <div style="display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0.6rem;">
-      <strong style="font-size:0.85rem;">Notifications</strong>
-      <button type="button" data-mark-all style="background:none;border:none;color:var(--brass-dark);font-size:0.78rem;font-weight:600;cursor:pointer;">Mark all read</button>
-    </div>
-    <ul style="list-style:none; max-height:320px; overflow-y:auto; display:flex; flex-direction:column; gap:0.15rem;"></ul>
-    <p data-empty style="display:none; padding:1.25rem 0.6rem; text-align:center; font-size:0.82rem; color:var(--slate);">You're all caught up.</p>
-  `;
-  return dropdown;
+function setBadgeCount(badge, count) {
+  if (!badge) return;
+  badge.textContent = count > 9 ? '9+' : String(count);
+  badge.style.display = count > 0 ? 'flex' : 'none';
+}
+
+function openDropdown(els) {
+  els.dropdown.setAttribute('aria-hidden', 'false');
+  els.toggle.setAttribute('aria-expanded', 'true');
+  els.dropdown.style.display = 'block';
+}
+
+function closeDropdown(els) {
+  els.dropdown.setAttribute('aria-hidden', 'true');
+  els.toggle.setAttribute('aria-expanded', 'false');
+  els.dropdown.style.display = 'none';
+}
+
+function isDropdownOpen(els) {
+  return els.dropdown.getAttribute('aria-hidden') === 'false';
 }
 
 /**
- * Wires the bell icon in the app header: click to toggle a dropdown
- * of recent notifications, badge shows unread count, realtime
- * subscription surfaces new ones as a toast + badge bump without a
- * page reload. No-ops quietly if the page has no bell button.
+ * Wires the bell icon in the app header: click to toggle the
+ * dropdown that's already in app-navbar.html, badge shows unread
+ * count, realtime subscription surfaces new ones as a toast + badge
+ * bump without a page reload. No-ops quietly if the page has no
+ * bell markup (e.g. a page that doesn't render the navbar).
  */
 export async function initNotificationCenter(userId) {
-  const bell = findBellButton();
-  if (!bell) return;
+  const els = getBellElements();
+  if (!els) return;
 
-  const { getNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead } =
-    await loadDatabaseModule();
+  // Start closed regardless of markup default.
+  closeDropdown(els);
 
-  const badge = $('.app-icon-btn-badge', bell) || (() => {
-    const span = document.createElement('span');
-    span.className = 'app-icon-btn-badge';
-    bell.appendChild(span);
-    return span;
-  })();
+  let db;
+  try {
+    db = await loadDatabaseModule();
+  } catch (err) {
+    console.error('Notifications: failed to load database module', err);
+    showBodyState(els, 'error');
+    return;
+  }
+
+  const { getNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead } = db;
 
   async function refreshBadge() {
-    const { data: count } = await getUnreadNotificationCount(userId);
-    badge.textContent = count > 9 ? '9+' : String(count);
-    badge.style.display = count > 0 ? 'flex' : 'none';
+    try {
+      const { data: count, error } = await getUnreadNotificationCount(userId);
+      if (error) throw new Error(error);
+      setBadgeCount(els.badge, count);
+    } catch (err) {
+      console.error('Notifications: failed to refresh unread count', err);
+      // Don't blow up the badge over this — just leave it as-is.
+    }
   }
-
-  const dropdown = buildDropdown();
-  bell.style.position = 'relative';
-  bell.appendChild(dropdown);
-  dropdown.style.display = 'none';
 
   async function renderList() {
-    const list = $('ul', dropdown);
-    const empty = $('[data-empty]', dropdown);
-    const { data: notifications } = await getNotifications(userId, { limit: 20 });
+    showBodyState(els, 'loading');
+    try {
+      const { data: notifications, error } = await getNotifications(userId, { limit: 20 });
+      if (error) throw new Error(error);
 
-    list.innerHTML = '';
-    if (!notifications.length) {
-      empty.style.display = 'block';
-      return;
-    }
-    empty.style.display = 'none';
-    notifications.forEach((n) => list.appendChild(renderNotificationRow(n)));
+      if (els.list) els.list.innerHTML = '';
 
-    list.querySelectorAll('[data-notification-id]').forEach((row) => {
-      row.addEventListener('click', async () => {
-        await markNotificationRead(row.dataset.notificationId);
-        row.querySelector('.chat-menu-item-state')?.remove();
-        refreshBadge();
+      if (!notifications.length) {
+        showBodyState(els, 'empty');
+        return;
+      }
+
+      notifications.forEach((n) => els.list.appendChild(renderNotificationRow(n)));
+      showBodyState(els, 'list');
+
+      els.list.querySelectorAll('[data-notification-id]').forEach((row) => {
+        row.addEventListener('click', async () => {
+          try {
+            await markNotificationRead(row.dataset.notificationId);
+            row.querySelector('.notification-row-state')?.remove();
+            refreshBadge();
+          } catch (err) {
+            console.error('Notifications: failed to mark row read', err);
+          }
+        });
       });
-    });
+    } catch (err) {
+      console.error('Notifications: failed to load notification list', err);
+      showBodyState(els, 'error');
+    }
   }
 
-  bell.addEventListener('click', async (event) => {
+  els.toggle.addEventListener('click', async (event) => {
     event.stopPropagation();
-    const isOpen = dropdown.style.display !== 'none';
-    if (isOpen) {
-      dropdown.style.display = 'none';
+    if (isDropdownOpen(els)) {
+      closeDropdown(els);
       return;
     }
+    openDropdown(els);
     await renderList();
-    dropdown.style.display = 'block';
   });
 
   document.addEventListener('click', (event) => {
-    if (!dropdown.contains(event.target) && event.target !== bell) {
-      dropdown.style.display = 'none';
+    if (isDropdownOpen(els) && !els.dropdown.contains(event.target) && event.target !== els.toggle) {
+      closeDropdown(els);
     }
   });
 
-  $('[data-mark-all]', dropdown).addEventListener('click', async (event) => {
+  els.retryBtn?.addEventListener('click', async (event) => {
     event.stopPropagation();
-    await markAllNotificationsRead(userId);
-    dropdown.querySelectorAll('.chat-menu-item-state').forEach((el) => el.remove());
-    refreshBadge();
+    await renderList();
+  });
+
+  els.markAllBtn?.addEventListener('click', async (event) => {
+    event.stopPropagation();
+    try {
+      await markAllNotificationsRead(userId);
+      els.list?.querySelectorAll('.notification-row-state').forEach((el) => el.remove());
+      refreshBadge();
+    } catch (err) {
+      console.error('Notifications: failed to mark all read', err);
+      toastError("Couldn't mark all notifications as read.");
+    }
   });
 
   await refreshBadge();
-  subscribeToNewNotifications(userId, async (notification) => {
-    toastInfo(notification.message, notification.title || 'New notification');
-    pulse(bell);
-    refreshBadge();
-    if (dropdown.style.display !== 'none') renderList();
-  });
+
+  try {
+    await subscribeToNewNotifications(userId, async (notification) => {
+      toastInfo(notification.message, notification.title || 'New notification');
+      pulse(els.toggle);
+      refreshBadge();
+      if (isDropdownOpen(els)) renderList();
+    });
+  } catch (err) {
+    // Realtime is a nice-to-have, not a hard requirement — don't
+    // break the rest of the bell (click-to-open, badge, mark-read)
+    // just because the subscription failed (e.g. replication isn't
+    // enabled on the notifications table yet).
+    console.error('Notifications: realtime subscription failed', err);
+  }
 }
 
 /**
