@@ -21,7 +21,8 @@
         success screen with the real reference number
    ============================================================= */
 
-import { requireAuth, signOutUser } from '../supabase/auth.js';
+import { signOutUser } from '../supabase/auth.js';
+import { guardPage } from '../supabase/page-guard.js';
 import {
   getMyProfile,
   getUnreadNotificationCount,
@@ -486,9 +487,8 @@ function renderFromAccountStrip() {
     .map((a) => {
       const selected = String(a.id) === String(selectedFromAccountId);
       return `
-      <button type="button" class="account-strip-item${selected ? ' is-selected' : ''}" data-account-id="${a.id}"
-              role="radio" aria-checked="${selected}"
-              style="${selected ? 'border-color:var(--brass);background:rgba(181,138,68,.07);' : ''}">
+      <button type="button" class="account-strip-item" data-account-id="${a.id}"
+              role="radio" aria-checked="${selected}">
         <span class="account-strip-flag">${currencySymbol(a.currency)}</span>
         <div>
           <strong>${a.currency} account</strong>
@@ -750,10 +750,8 @@ function applyQueryParams() {
    Init
    ----------------------------------------------------------- */
 (async function init() {
-  const user = await requireAuth();
-  if (!user) return; // requireAuth() already redirected to login.html
-
-  document.body.classList.remove('auth-pending');
+  const user = await guardPage();
+  if (!user) return; // guardPage() already redirected to login.html
 
   populateHeader();
   initUserMenu();
@@ -761,6 +759,13 @@ function applyQueryParams() {
   initRecipientTabs();
   wireRadioGroup('speed');
   wireRadioGroup('schedule');
+
+  // Safety net: every button in this form is type="button" on
+  // purpose (the wizard advances via JS, never a real submit), but
+  // pressing Enter in a lone visible text field can still trigger
+  // native form submission in some browsers. Block it so that
+  // never reloads the page and wipes wizard state.
+  $('#transfer-form').addEventListener('submit', (event) => event.preventDefault());
 
   $('#beneficiary-search').addEventListener('input', (e) => renderBeneficiaryList(e.target.value));
   $('#recipient-identifier').addEventListener('input', handleIdentifierInput);
