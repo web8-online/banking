@@ -283,6 +283,37 @@ export async function resendVerificationEmail(email) {
   return { data: !error, error: error ? friendlyAuthError(error) : null };
 }
 
+/**
+ * Re-confirms the *currently signed-in* user's identity by testing
+ * their password against Supabase Auth — used as a stand-in
+ * confirmation step wherever a sensitive action (like sending a
+ * transfer) needs an extra check but no OTP/2FA delivery exists
+ * yet. See transfer.js's Verify step for the caller.
+ *
+ * Deliberately does NOT sign the user into a new session or touch
+ * login_sessions/audit_logs — it re-validates the password of the
+ * same session that's already active, it isn't a new login event.
+ *
+ * TODO: once the admin dashboard ships real OTP/2FA delivery,
+ * swap the caller over to a dedicated code-verification endpoint
+ * and retire this function (or keep it as a fallback method).
+ */
+export async function verifyCurrentPassword(password) {
+  const { data: user, error: userError } = await getCurrentUser();
+  if (userError || !user?.email) {
+    return { data: false, error: 'Could not verify your session. Please log in again.' };
+  }
+  if (!password) {
+    return { data: false, error: 'Enter your password to continue.' };
+  }
+
+  const { error } = await supabase.auth.signInWithPassword({ email: user.email, password });
+  if (error) {
+    return { data: false, error: friendlyAuthError(error) };
+  }
+  return { data: true, error: null };
+}
+
 /* -----------------------------------------------------------
    Session & audit logging (login_sessions / audit_logs)
    ----------------------------------------------------------- */
