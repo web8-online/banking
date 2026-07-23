@@ -73,50 +73,155 @@
 
     <div class="page-head">
       <h1>Send money</h1>
-      <p>Transfer to 190+ countries at the mid-market rate, with the fee shown before you confirm.</p>
+      <p>Transfer to 190+ countries at the mid-market rate, with every fee shown before you confirm.</p>
     </div>
 
-    <!-- Step indicator -->
-    <p class="wizard-step-caption wizard-step-caption--center">Step <span id="wizard-step-current">1</span> of 4 — <span id="wizard-step-label">Recipient</span></p>
-    <ol class="wizard-steps" aria-label="Transfer progress">
-      <li class="wizard-step is-active" data-step="1">
-        <span class="wizard-step-dot">1</span>
-        <span class="wizard-step-name">Recipient</span>
-      </li>
-      <li class="wizard-step" data-step="2">
-        <span class="wizard-step-dot">2</span>
-        <span class="wizard-step-name">Amount</span>
-      </li>
-      <li class="wizard-step" data-step="3">
-        <span class="wizard-step-dot">3</span>
-        <span class="wizard-step-name">Review</span>
-      </li>
-      <li class="wizard-step" data-step="4">
-        <span class="wizard-step-dot">4</span>
-        <span class="wizard-step-name">Done</span>
-      </li>
-    </ol>
+    <!-- ================= ANIMATED PROGRESS ================= -->
+    <div class="wizard-progress" aria-label="Transfer progress">
+      <div class="wizard-progress-track">
+        <div class="wizard-progress-fill" id="wizard-progress-fill"></div>
+      </div>
+      <ol class="wizard-steps">
+        <li class="wizard-step is-active" data-step="1">
+          <span class="wizard-step-dot"><span class="wizard-step-num">1</span><svg class="wizard-step-check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5 6.5 12 13 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="wizard-step-name">Recipient</span>
+        </li>
+        <li class="wizard-step" data-step="2">
+          <span class="wizard-step-dot"><span class="wizard-step-num">2</span><svg class="wizard-step-check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5 6.5 12 13 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="wizard-step-name">Details</span>
+        </li>
+        <li class="wizard-step" data-step="3">
+          <span class="wizard-step-dot"><span class="wizard-step-num">3</span><svg class="wizard-step-check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5 6.5 12 13 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="wizard-step-name">Review</span>
+        </li>
+        <li class="wizard-step" data-step="4">
+          <span class="wizard-step-dot"><span class="wizard-step-num">4</span><svg class="wizard-step-check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5 6.5 12 13 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="wizard-step-name">Verify</span>
+        </li>
+        <li class="wizard-step" data-step="5">
+          <span class="wizard-step-dot"><span class="wizard-step-num">5</span><svg class="wizard-step-check" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5 6.5 12 13 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="wizard-step-name">Done</span>
+        </li>
+      </ol>
+    </div>
 
-    <div class="transfer-card">
+    <!-- Floating live-preview card — appears from step 2 onward.
+         Echoes the homepage's floating balance card / float-chip
+         motif so the app doesn't feel like a separate product. -->
+    <div class="transfer-preview-float" id="transfer-preview-float" hidden aria-hidden="true">
+      <div class="transfer-preview-row">
+        <span class="avatar-initial avatar-initial--sm" id="preview-avatar">·</span>
+        <div class="transfer-preview-info">
+          <strong id="preview-name">—</strong>
+          <span id="preview-meta">—</span>
+        </div>
+      </div>
+      <div class="transfer-preview-amount mono" id="preview-amount">—</div>
+    </div>
+
+    <div class="transfer-card glass-card">
       <form id="transfer-form" novalidate>
 
-        <!-- ===================== STEP 1 — RECIPIENT ===================== -->
+        <!-- ===================== STEP 1 — RECIPIENT VERIFICATION ===================== -->
         <fieldset class="wizard-panel is-active" data-panel="1">
-          <legend class="sr-only">Choose a recipient</legend>
+          <legend class="sr-only">Recipient verification</legend>
 
-          <!-- Recently paid — one-tap resend -->
-          <div id="recipient-recent-wrap" hidden>
-            <p class="recipient-quick-label">Recent</p>
-            <div class="recipient-quick-strip" id="recipient-recent-strip" aria-label="Recently paid recipients"></div>
+          <div class="wizard-panel-head">
+            <h2>Who are you sending to?</h2>
+            <p>Enter their account number, IBAN, or Meridian tag — we'll verify it automatically.</p>
           </div>
 
-          <div class="tab-toggle" role="tablist" aria-label="Recipient source">
-            <button type="button" class="tab-toggle-btn is-active" role="tab" aria-selected="true" data-recipient-tab="existing">Saved beneficiaries</button>
-            <button type="button" class="tab-toggle-btn" role="tab" aria-selected="false" data-recipient-tab="new">New recipient</button>
+          <div class="field field--identifier">
+            <label for="recipient-identifier">Recipient account number, IBAN, or Meridian tag</label>
+            <input type="text" id="recipient-identifier" name="identifier" placeholder="e.g. DE89 3704 0044 0532 0130 00" autocomplete="off" autofocus>
           </div>
 
-          <!-- Existing beneficiaries -->
-          <div class="recipient-tab-panel is-active" data-recipient-panel="existing">
+          <div class="recipient-lookup-status" id="recipient-lookup-status" aria-live="polite"></div>
+
+          <!-- Verified recipient card -->
+          <div class="recipient-found-card" id="recipient-verified-card" hidden>
+            <div class="recipient-found-head">
+              <span class="avatar-initial avatar-initial--lg" id="recipient-verified-avatar">·</span>
+              <div>
+                <div class="recipient-found-title">Recipient found</div>
+                <strong id="recipient-verified-name">—</strong>
+              </div>
+              <span class="status-pill status-pill--verified" id="recipient-verified-badge">
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5 6.5 12 13 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Verified
+              </span>
+            </div>
+            <dl class="recipient-found-grid">
+              <div><dt>Bank</dt><dd id="recipient-verified-bank">—</dd></div>
+              <div><dt>Account</dt><dd id="recipient-verified-account" class="mono">—</dd></div>
+              <div><dt>Country</dt><dd id="recipient-verified-country">—</dd></div>
+              <div><dt>Status</dt><dd id="recipient-verified-status">Active</dd></div>
+            </dl>
+            <button type="button" class="recipient-verified-clear" id="recipient-verified-clear">Not them? Search again</button>
+          </div>
+
+          <!-- Not found -->
+          <div class="recipient-not-found-card" id="recipient-not-found-card" hidden>
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 6.5v4M10 13.2v.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.4"/></svg>
+            <div>
+              <strong>Account not found</strong>
+              <span>We couldn't verify this automatically — check the number, or add their details below.</span>
+            </div>
+          </div>
+
+          <!-- Manual fallback -->
+          <div id="recipient-manual-fields" hidden>
+            <p class="wizard-divider-label">Recipient details</p>
+            <div class="field">
+              <label for="new-beneficiary-name">Recipient's full name</label>
+              <input type="text" id="new-beneficiary-name" name="beneficiary_name" placeholder="As it appears on their bank account">
+            </div>
+            <div class="form-row-2">
+              <div class="field">
+                <label for="new-beneficiary-bank">Bank name</label>
+                <input type="text" id="new-beneficiary-bank" name="bank_name" placeholder="e.g. Deutsche Bank">
+              </div>
+              <div class="field">
+                <label for="new-beneficiary-country">Recipient's country</label>
+                <select id="new-beneficiary-country" name="beneficiary_country">
+                  <option value="">Choose country</option>
+                  <option value="DE">Germany</option>
+                  <option value="GB">United Kingdom</option>
+                  <option value="SG">Singapore</option>
+                  <option value="NG">Nigeria</option>
+                  <option value="US">United States</option>
+                  <option value="CA">Canada</option>
+                  <option value="AU">Australia</option>
+                  <option value="CH">Switzerland</option>
+                  <option value="JP">Japan</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row-2">
+              <div class="field">
+                <label for="new-beneficiary-account">Account number / IBAN</label>
+                <input type="text" id="new-beneficiary-account" name="account_number" placeholder="e.g. DE89 3704 0044 0532 0130 00">
+              </div>
+              <div class="field">
+                <label for="new-beneficiary-swift">SWIFT / BIC code</label>
+                <input type="text" id="new-beneficiary-swift" name="swift_code" placeholder="e.g. DEUTDEFF">
+              </div>
+            </div>
+            <label class="checkbox-field">
+              <input type="checkbox" id="save-beneficiary-checkbox" checked>
+              Save this recipient as a beneficiary for future transfers
+            </label>
+          </div>
+
+          <!-- Recent + saved beneficiaries — secondary, collapsed by default -->
+          <details class="recipient-saved-toggle" id="recipient-saved-toggle">
+            <summary>Or choose someone you've paid before</summary>
+
+            <div id="recipient-recent-wrap" hidden>
+              <p class="recipient-quick-label">Recent</p>
+              <div class="recipient-quick-strip" id="recipient-recent-strip" aria-label="Recently paid recipients"></div>
+            </div>
+
             <div class="tx-search" style="margin-bottom:1rem;">
               <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.5"/><path d="m17 17-3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
               <label for="beneficiary-search" class="sr-only">Search beneficiaries</label>
@@ -127,71 +232,7 @@
               <div class="skeleton" style="height:64px;border-radius:14px;margin-bottom:0.6rem;"></div>
               <div class="skeleton" style="height:64px;border-radius:14px;"></div>
             </div>
-          </div>
-
-          <!-- New recipient -->
-          <div class="recipient-tab-panel" data-recipient-panel="new" hidden>
-            <div class="field">
-              <label for="recipient-identifier">Recipient's account number, IBAN, or Meridian tag</label>
-              <input type="text" id="recipient-identifier" name="identifier" placeholder="e.g. DE89 3704 0044 0532 0130 00" autocomplete="off">
-              <div class="recipient-lookup-status" id="recipient-lookup-status" aria-live="polite"></div>
-              <div class="recipient-verified-card" id="recipient-verified-card" hidden>
-                <span class="avatar-initial avatar-initial--sm" id="recipient-verified-avatar">·</span>
-                <span class="recipient-verified-card-info">
-                  <strong id="recipient-verified-name">—</strong>
-                  <span id="recipient-verified-meta">—</span>
-                </span>
-                <button type="button" class="recipient-verified-clear" id="recipient-verified-clear">Not them?</button>
-              </div>
-            </div>
-
-            <div id="recipient-manual-fields" hidden>
-              <div class="field">
-                <label for="new-beneficiary-name">Recipient's full name</label>
-                <input type="text" id="new-beneficiary-name" name="beneficiary_name" placeholder="As it appears on their bank account">
-                <span class="field-error" role="alert"></span>
-              </div>
-              <div class="form-row-2">
-                <div class="field">
-                  <label for="new-beneficiary-bank">Bank name</label>
-                  <input type="text" id="new-beneficiary-bank" name="bank_name" placeholder="e.g. Deutsche Bank">
-                  <span class="field-error" role="alert"></span>
-                </div>
-                <div class="field">
-                  <label for="new-beneficiary-country">Recipient's country</label>
-                  <select id="new-beneficiary-country" name="beneficiary_country">
-                    <option value="">Choose country</option>
-                    <option value="DE">Germany</option>
-                    <option value="GB">United Kingdom</option>
-                    <option value="SG">Singapore</option>
-                    <option value="NG">Nigeria</option>
-                    <option value="US">United States</option>
-                    <option value="CA">Canada</option>
-                    <option value="AU">Australia</option>
-                    <option value="CH">Switzerland</option>
-                    <option value="JP">Japan</option>
-                  </select>
-                  <span class="field-error" role="alert"></span>
-                </div>
-              </div>
-              <div class="form-row-2">
-                <div class="field">
-                  <label for="new-beneficiary-account">Account number / IBAN</label>
-                  <input type="text" id="new-beneficiary-account" name="account_number" placeholder="e.g. DE89 3704 0044 0532 0130 00">
-                  <span class="field-error" role="alert"></span>
-                </div>
-                <div class="field">
-                  <label for="new-beneficiary-swift">SWIFT / BIC code</label>
-                  <input type="text" id="new-beneficiary-swift" name="swift_code" placeholder="e.g. DEUTDEFF">
-                  <span class="field-error" role="alert"></span>
-                </div>
-              </div>
-              <label class="checkbox-field">
-                <input type="checkbox" id="save-beneficiary-checkbox" checked>
-                Save this recipient as a beneficiary for future transfers
-              </label>
-            </div>
-          </div>
+          </details>
 
           <div class="wizard-actions">
             <span></span>
@@ -202,9 +243,14 @@
           </div>
         </fieldset>
 
-        <!-- ===================== STEP 2 — AMOUNT ===================== -->
+        <!-- ===================== STEP 2 — TRANSFER DETAILS ===================== -->
         <fieldset class="wizard-panel" data-panel="2">
-          <legend class="sr-only">Amount and speed</legend>
+          <legend class="sr-only">Transfer details</legend>
+
+          <div class="wizard-panel-head">
+            <h2>How much are you sending?</h2>
+            <p>Sending to <strong data-review="beneficiary_inline">—</strong></p>
+          </div>
 
           <p class="field-label-static">Send from</p>
           <div class="account-strip" id="from-account-strip" style="margin-bottom:1.5rem;" role="radiogroup" aria-label="Account to send from">
@@ -241,7 +287,7 @@
             </div>
           </div>
 
-          <div class="transfer-fee-breakdown">
+          <div class="transfer-live-summary" id="transfer-live-summary">
             <div class="transfer-fee-row">
               <span>Exchange rate</span>
               <span class="mono" id="fee-rate-note">—</span>
@@ -250,9 +296,17 @@
               <span>Transfer fee</span>
               <span class="mono" id="fee-amount">$0.00</span>
             </div>
+            <div class="transfer-fee-row">
+              <span>Available balance</span>
+              <span class="mono" id="fee-available">—</span>
+            </div>
             <div class="transfer-fee-row transfer-fee-row--total">
               <span>Total to pay</span>
               <span class="mono" id="fee-total">$0.00</span>
+            </div>
+            <div class="transfer-fee-row">
+              <span>Remaining after send</span>
+              <span class="mono" id="fee-remaining">—</span>
             </div>
             <div class="transfer-fee-row">
               <span>Arrives</span>
@@ -263,7 +317,7 @@
           <p class="balance-note" id="balance-note" aria-live="polite"></p>
 
           <div class="field">
-            <span class="field-label-static">Delivery speed</span>
+            <span class="field-label-static">Transfer type</span>
             <div class="auth-methods">
               <label class="auth-method-btn auth-method-btn--radio is-selected">
                 <input type="radio" name="speed" value="standard" checked>
@@ -276,17 +330,30 @@
             </div>
           </div>
 
-          <div class="field">
-            <span class="field-label-static">When should this send?</span>
-            <div class="auth-methods">
-              <label class="auth-method-btn auth-method-btn--radio is-selected">
-                <input type="radio" name="schedule" value="now" checked>
-                Send now
-              </label>
-              <label class="auth-method-btn auth-method-btn--radio">
-                <input type="radio" name="schedule" value="later">
-                Schedule for later
-              </label>
+          <div class="form-row-2">
+            <div class="field">
+              <label for="transfer-purpose">Transfer purpose</label>
+              <select id="transfer-purpose" name="purpose">
+                <option value="Family support">Family support</option>
+                <option value="Business payment">Business payment</option>
+                <option value="Property purchase">Property purchase</option>
+                <option value="Education">Education</option>
+                <option value="Travel">Travel</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="field">
+              <span class="field-label-static">When should this send?</span>
+              <div class="auth-methods">
+                <label class="auth-method-btn auth-method-btn--radio is-selected">
+                  <input type="radio" name="schedule" value="now" checked>
+                  Now
+                </label>
+                <label class="auth-method-btn auth-method-btn--radio">
+                  <input type="radio" name="schedule" value="later">
+                  Later
+                </label>
+              </div>
             </div>
           </div>
 
@@ -296,7 +363,7 @@
           </div>
 
           <div class="field">
-            <label for="transfer-reference">Reference (optional)</label>
+            <label for="transfer-reference">Note (optional)</label>
             <input type="text" id="transfer-reference" name="reference" placeholder="e.g. Invoice #2026-014" maxlength="140">
           </div>
 
@@ -316,16 +383,21 @@
         <fieldset class="wizard-panel" data-panel="3">
           <legend class="sr-only">Review and confirm</legend>
 
+          <div class="wizard-panel-head">
+            <h2>Review your transfer</h2>
+            <p>Check the details below. You can go back and change anything before you confirm.</p>
+          </div>
+
           <div class="wizard-review-card">
+            <div class="wizard-review-row">
+              <span>From account</span>
+              <strong data-review="from_account">—</strong>
+              <button type="button" class="wizard-edit-link" data-goto="2">Edit</button>
+            </div>
             <div class="wizard-review-row">
               <span>Recipient</span>
               <strong data-review="beneficiary">—</strong>
               <button type="button" class="wizard-edit-link" data-goto="1">Edit</button>
-            </div>
-            <div class="wizard-review-row">
-              <span>From</span>
-              <strong data-review="from_account">—</strong>
-              <button type="button" class="wizard-edit-link" data-goto="2">Edit</button>
             </div>
             <div class="wizard-review-row">
               <span>You send</span>
@@ -338,31 +410,86 @@
               <button type="button" class="wizard-edit-link" data-goto="2">Edit</button>
             </div>
             <div class="wizard-review-row">
-              <span>Fee</span>
+              <span>Exchange rate</span>
+              <strong data-review="rate">—</strong>
+            </div>
+            <div class="wizard-review-row">
+              <span>Transfer fee</span>
               <strong data-review="fee">—</strong>
             </div>
             <div class="wizard-review-row">
-              <span>Total</span>
+              <span>Total debit</span>
               <strong data-review="total">—</strong>
             </div>
             <div class="wizard-review-row">
-              <span>Speed</span>
+              <span>Purpose</span>
+              <strong data-review="purpose">—</strong>
+              <button type="button" class="wizard-edit-link" data-goto="2">Edit</button>
+            </div>
+            <div class="wizard-review-row">
+              <span>Date</span>
               <strong data-review="schedule">—</strong>
               <button type="button" class="wizard-edit-link" data-goto="2">Edit</button>
             </div>
+            <div class="wizard-review-row">
+              <span>Reference</span>
+              <strong data-review="reference_note">Assigned once you confirm</strong>
+            </div>
           </div>
 
-          <div class="field" id="two-fa-field">
-            <label for="transfer-2fa-code">Enter the 6-digit code sent to your email to confirm</label>
-            <input type="text" id="transfer-2fa-code" name="two_factor_code" inputmode="numeric" maxlength="6" placeholder="000000" class="mono">
-            <span class="field-hint" id="two-fa-hint">Required for transfers over $1,000.</span>
-            <span class="field-error" role="alert" id="two-fa-error"></span>
+          <div class="wizard-actions">
+            <button type="button" class="btn btn-ghost wizard-back" data-goto="2">
+              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M13 8H3M7 4 3 8l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Back
+            </button>
+            <button type="button" class="btn btn-primary wizard-next" data-goto="4">
+              Continue to verification
+              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+        </fieldset>
+
+        <!-- ===================== STEP 4 — AUTHENTICATION ===================== -->
+        <fieldset class="wizard-panel" data-panel="4">
+          <legend class="sr-only">Confirm your identity</legend>
+
+          <div class="wizard-panel-head">
+            <h2>Confirm it's you</h2>
+            <p>Enter your account password to authorize this transfer.</p>
+          </div>
+
+          <div class="verify-notice">
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2.5 17 6v5c0 4.2-2.9 7.4-7 8.5-4.1-1.1-7-4.3-7-8.5V6l7-3.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+            <span>One-time codes aren't available yet, so we're using your account password to confirm this send.</span>
+          </div>
+
+          <div class="wizard-review-card" style="margin-bottom:1.5rem;">
+            <div class="wizard-review-row">
+              <span>Sending</span>
+              <strong data-review="verify_amount">—</strong>
+            </div>
+            <div class="wizard-review-row">
+              <span>To</span>
+              <strong data-review="verify_recipient">—</strong>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="transfer-auth-password">Account password</label>
+            <div class="password-field-wrap">
+              <input type="password" id="transfer-auth-password" name="auth_password" autocomplete="current-password" placeholder="Enter your password">
+              <button type="button" class="password-toggle" id="auth-password-toggle" aria-pressed="false" aria-label="Show password">
+                <svg class="icon-show" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M1.5 10S4.5 4 10 4s8.5 6 8.5 6-3 6-8.5 6-8.5-6-8.5-6Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.4"/></svg>
+                <svg class="icon-hide" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M2 2l16 16M8.3 8.4a2.5 2.5 0 0 0 3.3 3.3M6 6.2C3.4 7.6 1.5 10 1.5 10s3 6 8.5 6c1.4 0 2.7-.4 3.8-1M14.2 14.2C16.6 12.7 18.5 10 18.5 10s-1.4-2.8-4-4.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+            <span class="field-error" role="alert" id="auth-password-error"></span>
           </div>
 
           <p class="field-hint" id="review-error" style="color:var(--red); display:none;"></p>
 
           <div class="wizard-actions">
-            <button type="button" class="btn btn-ghost wizard-back" data-goto="2">
+            <button type="button" class="btn btn-ghost wizard-back" data-goto="3">
               <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M13 8H3M7 4 3 8l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
               Back
             </button>
@@ -372,8 +499,8 @@
           </div>
         </fieldset>
 
-        <!-- ===================== STEP 4 — SUCCESS ===================== -->
-        <fieldset class="wizard-panel" data-panel="4">
+        <!-- ===================== STEP 5 — SUCCESS ===================== -->
+        <fieldset class="wizard-panel" data-panel="5">
           <legend class="sr-only">Transfer sent</legend>
 
           <div class="transfer-success">
@@ -392,6 +519,10 @@
               <div class="wizard-review-row">
                 <span>Status</span>
                 <strong id="success-status">Processing</strong>
+              </div>
+              <div class="wizard-review-row">
+                <span>Available balance</span>
+                <strong id="success-balance">—</strong>
               </div>
             </div>
 
