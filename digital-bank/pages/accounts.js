@@ -156,10 +156,10 @@ function accountDetailRows(account) {
     rows.push(['IBAN', account.iban]);
     if (account.swift_code) rows.push(['SWIFT / BIC', account.swift_code]);
   } else if (account.sort_code) {
-    rows.push(['Account number', `···· ${String(account.account_number || '').slice(-4)}`]);
+    rows.push(['Account number', String(account.account_number || '')]);
     rows.push(['Sort code', account.sort_code]);
   } else {
-    rows.push(['Account number', `···· ${String(account.account_number || '').slice(-4)}`]);
+    rows.push(['Account number', String(account.account_number || '')]);
     if (account.swift_code) rows.push(['SWIFT / BIC', account.swift_code]);
   }
   return rows;
