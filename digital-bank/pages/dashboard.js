@@ -2,10 +2,11 @@
    MERIDIAN — Dashboard / overview page
    Script: pages/dashboard.js
    Loaded as a module by dashboard.html only. Handles:
-     1. Auth guard (redirect to login if no session)
-     2. Personalized greeting from the signed-in user's profile
+     1. Auth guard (via supabase/page-guard.js) + reveal
+     2. Personalized greeting + real last-login line, both from
+        the signed-in user's profile / login_sessions row
      3. Notification badge count
-     4. User menu dropdown (open/close, outside-click, Escape)
+     4. User menu dropdown + mobile nav toggle
      5. Log out
      6. Total balance + account strip, built from real accounts
      7. Recent transactions, spending breakdown, savings goals,
@@ -14,7 +15,9 @@
         renderPrimaryAccountSections() for why.
    ============================================================= */
 
-import { requireAuth, signOutUser } from '../supabase/auth.js';
+import { guardPage } from '../supabase/page-guard.js';
+import { signOutUser } from '../supabase/auth.js';
+import { supabase } from '../supabase/config.js';
 import {
   getMyProfile,
   getUnreadNotificationCount,
@@ -26,6 +29,7 @@ import {
 } from '../supabase/database.js';
 
 const $ = (selector, scope) => (scope || document).querySelector(selector);
+const $$ = (selector, scope) => Array.from((scope || document).querySelectorAll(selector));
 
 const CURRENCY_SYMBOLS = {
   USD: '$', EUR: '€', GBP: '£', SGD: 'S$', JPY: '¥', NGN: '₦', CAD: 'C$', AUD: 'A$', CHF: 'CHF',
@@ -36,7 +40,7 @@ function currencySymbol(code) {
 }
 
 function formatAmount(value) {
-  return Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function capitalizeWords(str) {
@@ -60,13 +64,46 @@ function formatTxTime(isoString) {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+/** Clears any skeleton styling left over from the loading state —
+ *  call this on a container right before writing real content into
+ *  it, since .skeleton forces color:transparent. */
+function unskeleton(el) {
+  el?.classList.remove('skeleton');
+}
+
 function emptyStateNote(container, message) {
   if (!container) return;
+  container.classList.remove('skeleton');
   container.innerHTML = `<p style="font-size:0.88rem;">${message}</p>`;
 }
 
 /* -----------------------------------------------------------
-   Greeting
+   Toasts (same pattern as the other pages)
+   ----------------------------------------------------------- */
+function showToast(message, variant = 'error') {
+  const stack = $('#toast-stack');
+  if (!stack) return;
+  const toast = document.createElement('div');
+  toast.className = `toast${variant === 'error' ? ' toast--error' : ' toast--success'}`;
+  toast.innerHTML = `
+    <svg class="toast-ic" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      ${variant === 'error'
+        ? '<path d="M10 6.5v4M10 13.2v.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.4"/>'
+        : '<path d="M4 10.5 8 14.5 16 5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'}
+    </svg>
+    <span>${message}</span>
+  `;
+  stack.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(6px)';
+    toast.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+    setTimeout(() => toast.remove(), 220);
+  }, 3200);
+}
+
+/* -----------------------------------------------------------
+   Greeting + last login
    ----------------------------------------------------------- */
 function timeOfDayGreeting() {
   const hour = new Date().getHours();
@@ -76,12 +113,41 @@ function timeOfDayGreeting() {
 }
 
 async function populateGreeting() {
-  const heading = $('.dashboard-head h1');
+  const heading = $('#dashboard-greeting');
   if (!heading) return;
 
   const { data: profile } = await getMyProfile();
   const firstName = profile?.first_name;
+  unskeleton(heading);
   heading.textContent = `${timeOfDayGreeting()}${firstName ? `, ${firstName}` : ''}.`;
+}
+
+/** Real "last login" line, built from login_sessions (written by
+ *  auth.js on every sign-in) rather than a hardcoded string. Shows
+ *  the session before the current one, since "today, just now" from
+ *  this very session isn't useful context for the person reading it. */
+async function populateLastLogin(userId) {
+  const el = $('#dashboard-last-login');
+  if (!el) return;
+
+  const { data, error } = await supabase
+    .from('login_sessions')
+    .select('login_time, browser, device')
+    .eq('user_id', userId)
+    .order('login_time', { ascending: false })
+    .range(1, 1); // skip the current session (row 0), take the one before it
+
+  if (error || !data?.length) {
+    el.textContent = '';
+    return;
+  }
+
+  const last = data[0];
+  const when = new Date(last.login_time).toLocaleString('en-US', {
+    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+  });
+  const context = [last.browser, last.device].filter(Boolean).join(' on ');
+  el.textContent = `Last login ${when}${context ? ` from ${context}` : ''}.`;
 }
 
 /* -----------------------------------------------------------
@@ -97,6 +163,21 @@ async function populateNotificationBadge() {
     return;
   }
   badge.textContent = count > 9 ? '9+' : String(count);
+  badge.style.display = 'flex';
+}
+
+/* -----------------------------------------------------------
+   Header: name, avatar
+   ----------------------------------------------------------- */
+async function populateHeaderIdentity() {
+  const { data: profile } = await getMyProfile();
+  const nameEl = $('.app-user-name');
+  const avatarEl = $('.app-user-trigger .avatar-initial');
+  const firstName = profile?.first_name || '';
+  const lastName = profile?.last_name || '';
+
+  if (nameEl) nameEl.textContent = `${firstName} ${lastName}`.trim() || 'Your account';
+  if (avatarEl) avatarEl.textContent = (firstName[0] || 'M').toUpperCase();
 }
 
 /* -----------------------------------------------------------
@@ -140,10 +221,37 @@ function initUserMenu() {
 }
 
 /* -----------------------------------------------------------
+   Mobile nav toggle
+   ----------------------------------------------------------- */
+function initMobileNav() {
+  const toggle = $('.app-nav-toggle');
+  const nav = $('.app-nav');
+  if (!toggle || !nav) return;
+
+  toggle.addEventListener('click', () => {
+    const isOpen = nav.classList.toggle('is-mobile-open');
+    toggle.setAttribute('aria-expanded', String(isOpen));
+  });
+  nav.addEventListener('click', (event) => {
+    if (event.target.tagName === 'A') {
+      nav.classList.remove('is-mobile-open');
+      toggle.setAttribute('aria-expanded', 'false');
+    }
+  });
+  document.addEventListener('click', (event) => {
+    if (!nav.classList.contains('is-mobile-open')) return;
+    if (!nav.contains(event.target) && !toggle.contains(event.target)) {
+      nav.classList.remove('is-mobile-open');
+      toggle.setAttribute('aria-expanded', 'false');
+    }
+  });
+}
+
+/* -----------------------------------------------------------
    Log out
    ----------------------------------------------------------- */
 function initLogout() {
-  const logoutLink = $('.app-user-dropdown a[href="../index.html"]');
+  const logoutLink = $('#logout-link');
   if (!logoutLink) return;
 
   logoutLink.addEventListener('click', async (event) => {
@@ -164,23 +272,24 @@ async function renderBalanceAndAccounts(accounts) {
   const stripEl = $('.account-strip');
   const addItem = stripEl ? stripEl.querySelector('.account-strip-item--add') : null;
 
+  Array.from(stripEl?.querySelectorAll('.account-strip-item:not(.account-strip-item--add)') || []).forEach((el) => el.remove());
+
   if (!accounts.length) {
-    if (balanceEl) balanceEl.innerHTML = '0<small>.00 USD</small>';
-    if (stripEl) {
-      Array.from(stripEl.querySelectorAll('.account-strip-item:not(.account-strip-item--add)')).forEach((el) => el.remove());
+    if (balanceEl) {
+      unskeleton(balanceEl);
+      balanceEl.innerHTML = '0<small>.00 USD</small>';
     }
     return;
   }
 
   if (balanceEl) {
     const { data: totalData } = await getTotalBalance(undefined, 'USD');
+    unskeleton(balanceEl);
     const [intPart, decPart = '00'] = Number(totalData?.total || 0).toFixed(2).split('.');
     balanceEl.innerHTML = `${Number(intPart).toLocaleString('en-US')}<small>.${decPart} USD</small>`;
   }
 
   if (stripEl) {
-    Array.from(stripEl.querySelectorAll('.account-strip-item:not(.account-strip-item--add)')).forEach((el) => el.remove());
-
     const fragment = document.createDocumentFragment();
     accounts.forEach((account) => {
       const item = document.createElement('a');
@@ -333,8 +442,10 @@ async function renderCardPreview(accountId) {
   const { data: cards } = await getCardsForAccount(accountId);
 
   if (!cards.length) {
-    const wrap = previewEl.closest('.profile-card');
-    emptyStateNote(wrap, "You haven't added a card yet.");
+    // Targets .mini-card-preview itself, not its parent .profile-card
+    // — that parent also holds the "Your cards / Manage" heading,
+    // which an empty state shouldn't wipe out along with it.
+    emptyStateNote(previewEl, "You haven't added a card yet.");
     return;
   }
 
@@ -364,8 +475,7 @@ async function renderPrimaryAccountSections(accounts) {
     emptyStateNote($('.spend-breakdown'), 'Open your first account to see spending by category.');
     const goalItems = Array.from(document.querySelectorAll('.goal-item'));
     if (goalItems.length) emptyStateNote(goalItems[0].parentElement, 'Open an account to start a savings goal.');
-    const cardWrap = $('.mini-card-preview')?.closest('.profile-card');
-    emptyStateNote(cardWrap, 'Open an account to add a card.');
+    emptyStateNote($('.mini-card-preview'), 'Open an account to add a card.');
     return;
   }
 
@@ -383,15 +493,20 @@ async function renderPrimaryAccountSections(accounts) {
    Init
    ----------------------------------------------------------- */
 (async function init() {
-  const user = await requireAuth();
-  if (!user) return; // requireAuth() already redirected to login.html
+  const user = await guardPage();
+  if (!user) return; // guardPage() already redirected to login.html
 
   populateGreeting();
+  populateLastLogin(user.id);
+  populateHeaderIdentity();
   populateNotificationBadge();
   initUserMenu();
+  initMobileNav();
   initLogout();
 
-  const { data: accounts } = await getMyAccounts();
-  await renderBalanceAndAccounts(accounts);
-  await renderPrimaryAccountSections(accounts);
+  const { data: accounts, error } = await getMyAccounts(user.id);
+  if (error) showToast("Couldn't load your accounts. Please refresh.");
+
+  await renderBalanceAndAccounts(accounts || []);
+  await renderPrimaryAccountSections(accounts || []);
 })();
