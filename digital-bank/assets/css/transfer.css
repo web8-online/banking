@@ -2,85 +2,95 @@
    MERIDIAN — International Digital Banking
    Stylesheet: assets/css/transfer.css
    SCOPE: transfer.html only. Loaded after dashboard.css, which
-          already provides the app shell, header, .tab-toggle,
-          .account-strip, .auth-methods/.auth-method-btn,
-          .field-label-static, .wizard-edit-link, .toast-stack,
-          and .skeleton that this page reuses.
+          already provides the app shell, header, .account-strip,
+          .auth-methods/.auth-method-btn, .field-label-static,
+          .wizard-edit-link, .toast-stack, .skeleton,
+          .password-field-wrap/.password-toggle, and
+          .status-pill--verified that this page reuses.
 
    Load order on transfer.html:
      1. style.css        (tokens, reset, buttons, .field, .converter-*)
      2. dashboard.css     (app shell, shared widgets)
      3. transfer.css      (this file)
 
+   DESIGN NOTE: this page borrows its one "signature" move from the
+   marketing homepage — the floating balance-card / float-chip
+   motif (see .balance-card / .float-chip in style.css) — rather
+   than inventing a new visual language for an internal page of the
+   same product. Here it reappears as #transfer-preview-float, a
+   pinned live summary that follows the customer from Details
+   through Verify so the transfer never feels abstract.
+
    Contents:
-     1. Page head + step indicator
-     2. Transfer card + wizard panels
-     3. Recipient step — recent strip, search, beneficiary cards
-     4. Recipient step — new-recipient lookup + verified card
-     5. Radio-style auth-method buttons (speed / schedule)
-     6. Fee breakdown + balance note
-     7. Review step
-     8. Success step
-     9. Small overrides on shared classes
-     10. Responsive
+     1. Page head
+     2. Animated step progress
+     3. Floating live-preview card
+     4. Glass transfer card + wizard panels
+     5. Recipient step — identifier field, verified/not-found cards
+     6. Recipient step — manual fallback + saved beneficiaries
+     7. Radio-style auth-method buttons (speed / schedule)
+     8. Live summary panel (Details step)
+     9. Review step
+     10. Verify (authentication) step
+     11. Success step
+     12. Responsive
    ============================================================= */
 
 /* -------------------------------------------------------------
-   1. Page head + step indicator
+   1. Page head
    ------------------------------------------------------------- */
 .transfer-main {
   padding-block: 2.5rem 5rem;
 }
 
-.wizard-step-caption {
-  font-size: 0.82rem;
-  color: var(--slate);
-  margin-bottom: 1.25rem;
-}
-
-.wizard-step-caption--center {
+.transfer-main .page-head {
   text-align: center;
+  margin-bottom: 2.25rem;
 }
 
-.wizard-step-caption span {
-  color: var(--ink);
-  font-weight: 600;
+.transfer-main .page-head p {
+  margin-inline: auto;
+}
+
+/* -------------------------------------------------------------
+   2. Animated step progress
+   ------------------------------------------------------------- */
+.wizard-progress {
+  margin-bottom: 2.5rem;
+}
+
+.wizard-progress-track {
+  position: relative;
+  height: 3px;
+  background: var(--line);
+  border-radius: 999px;
+  margin: 16px 16px 0;
+}
+
+.wizard-progress-fill {
+  position: absolute;
+  inset: 0;
+  width: 0%;
+  background: linear-gradient(90deg, var(--brass-dark), var(--brass));
+  border-radius: 999px;
+  transition: width 0.5s cubic-bezier(0.65, 0, 0.35, 1);
 }
 
 .wizard-steps {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 2.5rem;
+  margin-top: -16px;
 }
 
 .wizard-step {
-  position: relative;
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.55rem;
 }
 
-.wizard-step:not(:first-child)::before {
-  content: '';
-  position: absolute;
-  top: 16px;
-  right: 50%;
-  width: 100%;
-  height: 2px;
-  background: var(--line);
-  z-index: 0;
-}
-
-.wizard-step.is-active:not(:first-child)::before,
-.wizard-step.is-complete:not(:first-child)::before {
-  background: var(--brass);
-}
-
 .wizard-step-dot {
   position: relative;
-  z-index: 1;
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -93,25 +103,46 @@
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--slate);
-  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+  transition: border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease, transform 0.3s ease;
+}
+
+.wizard-step-check {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.25s ease, transform 0.25s ease;
 }
 
 .wizard-step.is-active .wizard-step-dot {
   border-color: var(--brass);
   background: var(--brass);
   color: var(--ink);
+  transform: scale(1.08);
+  box-shadow: 0 0 0 5px rgba(181, 138, 68, 0.16);
 }
 
 .wizard-step.is-complete .wizard-step-dot {
-  border-color: var(--brass);
+  border-color: var(--ink);
   background: var(--ink);
   color: var(--brass-light);
 }
 
+.wizard-step.is-complete .wizard-step-num {
+  opacity: 0;
+}
+
+.wizard-step.is-complete .wizard-step-check {
+  opacity: 1;
+  transform: scale(1);
+}
+
 .wizard-step-name {
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 600;
   color: var(--slate);
+  transition: color 0.3s ease;
 }
 
 .wizard-step.is-active .wizard-step-name,
@@ -120,14 +151,97 @@
 }
 
 /* -------------------------------------------------------------
-   2. Transfer card + wizard panels
+   3. Floating live-preview card
    ------------------------------------------------------------- */
-.transfer-card {
-  background: var(--paper);
-  border: 1px solid var(--line);
+.transfer-preview-float {
+  position: fixed;
+  top: calc(var(--app-header-h) + 1.5rem);
+  right: 2rem;
+  z-index: 40;
+  width: 240px;
+  background: linear-gradient(155deg, var(--ink) 0%, var(--ink-3) 100%);
+  color: var(--ivory);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  padding: 2rem;
+  padding: 1.1rem 1.25rem;
+  box-shadow: var(--shadow-soft);
+  animation: preview-float 6s ease-in-out infinite;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  pointer-events: none;
+}
+
+.transfer-preview-float.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@keyframes preview-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.transfer-preview-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.85rem;
+}
+
+.transfer-preview-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.transfer-preview-info strong {
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transfer-preview-info span {
+  font-size: 0.72rem;
+  color: rgba(246, 245, 240, 0.55);
+}
+
+.transfer-preview-amount {
+  font-size: 1.3rem;
+  font-weight: 500;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line-dark);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .transfer-preview-float {
+    animation: none;
+  }
+}
+
+/* -------------------------------------------------------------
+   4. Glass transfer card + wizard panels
+   ------------------------------------------------------------- */
+.glass-card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  padding: 2.25rem;
+  overflow: hidden;
+}
+
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--brass-dark), var(--brass), var(--brass-light));
 }
 
 .wizard-panel {
@@ -136,7 +250,20 @@
 
 .wizard-panel.is-active {
   display: block;
-  animation: panel-in 0.25s ease; /* keyframes come from dashboard.css */
+  animation: panel-in 0.3s ease; /* keyframes come from dashboard.css */
+}
+
+.wizard-panel-head {
+  margin-bottom: 1.75rem;
+}
+
+.wizard-panel-head h2 {
+  font-size: 1.4rem;
+  margin-bottom: 0.35rem;
+}
+
+.wizard-panel-head p {
+  font-size: 0.92rem;
 }
 
 .wizard-actions {
@@ -149,9 +276,187 @@
   border-top: 1px solid var(--line);
 }
 
+.wizard-divider-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--slate);
+  margin: 1.5rem 0 1rem;
+}
+
 /* -------------------------------------------------------------
-   3. Recipient step — recent strip, search, beneficiary cards
+   5. Recipient step — identifier field, verified/not-found cards
    ------------------------------------------------------------- */
+.field--identifier input {
+  font-size: 1.05rem;
+  padding-block: 1.05rem;
+}
+
+.recipient-lookup-status {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.86rem;
+  color: var(--slate);
+  min-height: 1.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.recipient-lookup-spinner {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  border-top-color: var(--brass);
+  animation: recipient-spin 0.7s linear infinite;
+}
+
+@keyframes recipient-spin {
+  to { transform: rotate(360deg); }
+}
+
+.recipient-found-card {
+  margin-top: 0.5rem;
+  margin-bottom: 1.5rem;
+  padding: 1.5rem;
+  border: 1.5px solid var(--green);
+  background: var(--green-bg);
+  border-radius: var(--radius-lg);
+  animation: panel-in 0.3s ease;
+}
+
+.recipient-found-head {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.recipient-found-head > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.recipient-found-title {
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--green);
+  margin-bottom: 0.15rem;
+}
+
+.recipient-found-head strong {
+  display: block;
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+
+.recipient-found-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem 1.5rem;
+  padding-top: 1.1rem;
+  border-top: 1px dashed rgba(31, 138, 95, 0.3);
+  margin-bottom: 1rem;
+}
+
+.recipient-found-grid dt {
+  font-size: 0.74rem;
+  color: var(--slate);
+  margin-bottom: 0.15rem;
+}
+
+.recipient-found-grid dd {
+  font-size: 0.9rem;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.recipient-verified-clear {
+  background: transparent;
+  border: none;
+  color: var(--brass-dark);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.recipient-not-found-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1.1rem 1.25rem;
+  border: 1.5px solid rgba(192, 69, 59, 0.3);
+  background: var(--red-bg);
+  border-radius: var(--radius-md);
+  margin-bottom: 1.5rem;
+}
+
+.recipient-not-found-card svg {
+  width: 20px;
+  height: 20px;
+  color: var(--red);
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.recipient-not-found-card strong {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--ink);
+  margin-bottom: 0.15rem;
+}
+
+.recipient-not-found-card span {
+  font-size: 0.84rem;
+  color: var(--slate-dark);
+}
+
+/* -------------------------------------------------------------
+   6. Recipient step — manual fallback + saved beneficiaries
+   ------------------------------------------------------------- */
+.recipient-saved-toggle {
+  margin-top: 1.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.recipient-saved-toggle summary {
+  cursor: pointer;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--brass-dark);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.recipient-saved-toggle summary::-webkit-details-marker {
+  display: none;
+}
+
+.recipient-saved-toggle summary::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.2s ease;
+}
+
+.recipient-saved-toggle[open] summary::before {
+  transform: rotate(45deg);
+}
+
+.recipient-saved-toggle > *:not(summary) {
+  margin-top: 1.25rem;
+}
+
 .recipient-quick-label {
   font-size: 0.76rem;
   font-weight: 600;
@@ -334,76 +639,12 @@
 }
 
 /* -------------------------------------------------------------
-   4. Recipient step — new-recipient lookup + verified card
-   ------------------------------------------------------------- */
-.recipient-lookup-status {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.82rem;
-  color: var(--slate);
-  margin-top: 0.5rem;
-}
-
-.recipient-lookup-spinner {
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  border: 2px solid var(--line);
-  border-top-color: var(--brass);
-  animation: recipient-spin 0.7s linear infinite;
-}
-
-@keyframes recipient-spin {
-  to { transform: rotate(360deg); }
-}
-
-.recipient-verified-card {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-top: 0.75rem;
-  padding: 0.9rem 1rem;
-  border: 1.5px solid var(--green);
-  background: var(--green-bg);
-  border-radius: var(--radius-md);
-}
-
-.recipient-verified-card-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.recipient-verified-card-info strong {
-  font-size: 0.9rem;
-  color: var(--ink);
-}
-
-.recipient-verified-card-info span {
-  font-size: 0.78rem;
-  color: var(--slate-dark);
-}
-
-.recipient-verified-clear {
-  flex-shrink: 0;
-  background: transparent;
-  border: none;
-  color: var(--brass-dark);
-  font-size: 0.78rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-/* -------------------------------------------------------------
-   5. Radio-style auth-method buttons (speed / schedule)
+   7. Radio-style auth-method buttons (speed / schedule)
    ------------------------------------------------------------- */
 .auth-method-btn--radio {
   position: relative;
   flex: 1;
-  min-width: 180px;
+  min-width: 150px;
   cursor: pointer;
 }
 
@@ -415,9 +656,9 @@
 }
 
 /* -------------------------------------------------------------
-   6. Fee breakdown + balance note
+   8. Live summary panel (Details step)
    ------------------------------------------------------------- */
-.transfer-fee-breakdown {
+.transfer-live-summary {
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
@@ -426,6 +667,7 @@
   border-radius: var(--radius-md);
   padding: 1.1rem 1.25rem;
   margin-bottom: 1.5rem;
+  transition: background-color 0.2s ease;
 }
 
 .transfer-fee-row {
@@ -465,7 +707,7 @@
 }
 
 /* -------------------------------------------------------------
-   7. Review step
+   9. Review step
    ------------------------------------------------------------- */
 .wizard-review-card {
   background: var(--ivory);
@@ -477,7 +719,7 @@
 
 .wizard-review-row {
   display: grid;
-  grid-template-columns: 110px 1fr auto;
+  grid-template-columns: 130px 1fr auto;
   align-items: center;
   gap: 0.75rem;
   padding-block: 0.9rem;
@@ -510,7 +752,31 @@
 }
 
 /* -------------------------------------------------------------
-   8. Success step
+   10. Verify (authentication) step
+   ------------------------------------------------------------- */
+.verify-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1.15rem;
+  background: var(--amber-bg);
+  border: 1px solid rgba(179, 119, 29, 0.3);
+  border-radius: var(--radius-md);
+  margin-bottom: 1.5rem;
+  font-size: 0.85rem;
+  color: var(--slate-dark);
+}
+
+.verify-notice svg {
+  width: 19px;
+  height: 19px;
+  color: var(--amber);
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+/* -------------------------------------------------------------
+   11. Success step
    ------------------------------------------------------------- */
 .transfer-success {
   text-align: center;
@@ -527,6 +793,12 @@
   align-items: center;
   justify-content: center;
   margin: 0 auto 1.5rem;
+  animation: success-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes success-pop {
+  from { transform: scale(0.6); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 
 .transfer-success-icon svg {
@@ -553,27 +825,33 @@
 }
 
 /* -------------------------------------------------------------
-   9. Small overrides on shared classes
+   Small overrides on shared classes
    ------------------------------------------------------------- */
-/* transfer.js sets aria-checked on the from-account picker (and
-   also sets an inline style — see the code-review notes). This
-   keys the same selected look off the accessible attribute so it
-   still works even if that inline style is ever removed. */
 .account-strip-item[aria-checked="true"] {
   border-color: var(--brass);
   background: rgba(181, 138, 68, 0.07);
 }
 
 /* -------------------------------------------------------------
-   10. Responsive
+   12. Responsive
    ------------------------------------------------------------- */
+@media (max-width: 1180px) {
+  .transfer-preview-float {
+    display: none;
+  }
+}
+
 @media (max-width: 640px) {
-  .transfer-card {
-    padding: 1.25rem;
+  .glass-card {
+    padding: 1.5rem;
   }
 
   .wizard-step-name {
-    display: none;
+    font-size: 0.66rem;
+  }
+
+  .recipient-found-grid {
+    grid-template-columns: 1fr;
   }
 
   .wizard-review-row {
