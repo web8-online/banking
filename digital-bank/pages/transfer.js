@@ -14,6 +14,12 @@
         profile card, or a not-found state with manual fallback
         fields. Saved beneficiaries + a "recent" strip live in a
         collapsed secondary section.
+        NOTE: the lookup (and therefore the verified/not-found
+        cards) only fires once the typed identifier reaches
+        ACCOUNT_NUMBER_MIN_LENGTH characters — see
+        handleIdentifierInput(). Below that length nothing renders,
+        so the "not found" card can't flash up mid-keystroke or on
+        a still-empty field.
      4. Details step: from-account picker, live currency conversion
         via getExchangeRate(), transfer type, purpose, optional
         scheduling.
@@ -57,6 +63,17 @@ const RECENT_RECIPIENTS_KEY = 'meridian_recent_recipients';
 const TOTAL_STEPS = 5;
 const MAX_AUTH_ATTEMPTS = 5;
 const AUTH_LOCKOUT_MS = 60000;
+
+// Minimum characters (after stripping whitespace) typed into the
+// recipient identifier field before we attempt a lookup at all.
+// Below this, we show neither a spinner nor a verified/not-found
+// card — just a plain empty field. Meridian's own account numbers
+// run 8–10 digits (GBP accounts are 8; USD/others are 10) and IBANs
+// are much longer, so 10 avoids false "not found" flashes on a
+// half-typed number while still letting IBAN-length input through.
+// If you need to support 8-digit GBP account lookups too, lower
+// this to 8 — it'll just mean the lookup fires a little earlier.
+const ACCOUNT_NUMBER_MIN_LENGTH = 10;
 
 const HERO_COPY = {
   1: {
@@ -470,7 +487,15 @@ function handleIdentifierInput(event) {
   updateStep1ContinueState();
   updateLedger();
 
-  if (!value.trim()) return;
+  const trimmed = value.trim();
+  if (!trimmed) return;
+
+  // Don't attempt a lookup (and therefore don't show a spinner or a
+  // verified/not-found card) until the identifier is long enough to
+  // plausibly be a real account number — otherwise every partial
+  // number briefly flashes "not found" before the person finishes
+  // typing, which reads as a false error rather than helpful feedback.
+  if (trimmed.replace(/\s+/g, '').length < ACCOUNT_NUMBER_MIN_LENGTH) return;
 
   const statusEl = $('#recipient-lookup-status');
   statusEl.innerHTML = `<span class="recipient-lookup-spinner"></span> Verifying recipient…`;
@@ -960,6 +985,13 @@ function initPasswordToggle() {
   wireSegmented('speed');
   wireSegmented('schedule');
 
+  // Defensive: make sure the verified/not-found recipient cards
+  // start hidden regardless of what transfer.html ships as their
+  // default markup state. Without this, a "not found" card left
+  // visible in the HTML would show up on first load, before the
+  // person has typed anything at all.
+  resetNewRecipientUi();
+
   // Safety net: every button in this form is type="button" on
   // purpose (the wizard advances via JS, never a real submit), but
   // pressing Enter in a lone visible text field can still trigger
@@ -1036,4 +1068,3 @@ function initPasswordToggle() {
     showToast('Open a currency account before you can send money.', 'error');
   }
 })();
-
