@@ -1,0 +1,179 @@
+/* =============================================================
+   MERIDIAN — Transfer page
+   Stylesheet: assets/css/transfer.css
+   SCOPE: pages/transfer.html only.
+   Load order: style.css → dashboard.css → transfer.css
+   (reuses .tab-toggle, .field, .btn, .modal-overlay/.modal-card,
+   .form-row-2 from dashboard.css & style.css — only the two-column
+   layout, summary card, and amount input are new here.)
+   ============================================================= */
+
+/* -------------------------------------------------------------
+   Layout — form + sticky summary sidebar
+   ------------------------------------------------------------- */
+.transfer-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 2rem;
+  align-items: start;
+  margin-top: 1.75rem;
+}
+
+.transfer-form-card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.transfer-recipient-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.field-optional {
+  font-weight: 400;
+  color: var(--slate);
+}
+
+/* -------------------------------------------------------------
+   Amount input with a currency badge inline
+   ------------------------------------------------------------- */
+.transfer-amount-wrap {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--ivory);
+}
+
+.transfer-amount-currency {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  background: var(--paper);
+  border-right: 1px solid var(--line);
+  min-width: 64px;
+}
+
+.transfer-amount-wrap input {
+  border: none;
+  flex: 1;
+  padding: 0.85rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  background: transparent;
+}
+
+.transfer-amount-wrap input:focus {
+  outline: none;
+}
+
+.transfer-amount-wrap:focus-within {
+  border-color: var(--brass);
+  box-shadow: 0 0 0 3px rgba(181, 138, 68, 0.14);
+}
+
+.transfer-submit-btn {
+  align-self: flex-start;
+  margin-top: 0.5rem;
+}
+
+/* -------------------------------------------------------------
+   Summary sidebar
+   ------------------------------------------------------------- */
+.transfer-summary-card {
+  position: sticky;
+  top: 1.5rem;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.transfer-summary-card h2 {
+  font-size: 1rem;
+  margin: 0 0 0.25rem;
+}
+
+.transfer-summary-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.88rem;
+}
+
+.transfer-summary-row span {
+  color: var(--slate);
+}
+
+.transfer-summary-row strong {
+  font-family: var(--font-mono);
+  color: var(--ink);
+  text-align: right;
+  word-break: break-word;
+}
+
+.transfer-summary-row--converted strong {
+  color: var(--brass-dark);
+}
+
+.transfer-summary-divider {
+  height: 1px;
+  background: var(--line);
+  margin: 0.25rem 0;
+}
+
+.transfer-summary-row--total {
+  font-size: 0.98rem;
+}
+
+.transfer-summary-row--total strong {
+  font-size: 1.05rem;
+}
+
+.transfer-summary-note {
+  font-size: 0.78rem;
+  color: var(--slate);
+  margin: 0.25rem 0 0;
+}
+
+.transfer-summary-note--error {
+  color: var(--red);
+}
+
+/* -------------------------------------------------------------
+   Responsive
+   ------------------------------------------------------------- */
+@media (max-width: 960px) {
+  .transfer-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .transfer-summary-card {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  .transfer-form-card {
+    padding: 1.25rem;
+  }
+}
