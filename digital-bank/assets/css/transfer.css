@@ -1,306 +1,361 @@
 /* =============================================================
    MERIDIAN — International Digital Banking
-   Stylesheet: assets/css/transfer.css
-   SCOPE: transfer.html only. Loaded after dashboard.css, which
-          already provides the app shell, header, .account-strip,
-          .auth-methods/.auth-method-btn, .field-label-static,
-          .wizard-edit-link, .toast-stack, .skeleton,
-          .password-field-wrap/.password-toggle, and
-          .status-pill--verified that this page reuses.
+   Stylesheet: assets/css/transfer.css  (REDESIGN)
+   SCOPE: transfer.html only. Loaded after style.css + dashboard.css,
+          which provide tokens, the app shell/header, .toast-stack,
+          .skeleton, .password-field-wrap/.password-toggle, and
+          .status-pill this page still borrows.
 
-   Load order on transfer.html:
-     1. style.css        (tokens, reset, buttons, .field, .converter-*)
-     2. dashboard.css     (app shell, shared widgets)
-     3. transfer.css      (this file)
-
-   DESIGN NOTE: this page borrows its one "signature" move from the
-   marketing homepage — the floating balance-card / float-chip
-   motif (see .balance-card / .float-chip in style.css) — rather
-   than inventing a new visual language for an internal page of the
-   same product. Here it reappears as #transfer-preview-float, a
-   pinned live summary that follows the customer from Details
-   through Verify so the transfer never feels abstract.
+   DESIGN CONCEPT — "The Transfer Ledger"
+   Meridian's brand (compass mark, ink/brass palette, mono figures)
+   already reads like an old-world trade ledger. Instead of trapping
+   the whole flow in one narrow centered box, the page opens up:
+   a wide two-column layout where the wizard breathes on the left
+   and a sticky passbook-style ledger on the right holds the single
+   source of truth — recipient, amount, fees — evolving live as the
+   customer moves through the steps, then finishing the flow itself
+   as the receipt. Perforated ticket-stub dividers and a brass wax
+   seal for "verified" carry that ledger metaphor through construction.
 
    Contents:
-     1. Page head
-     2. Animated step progress
-     3. Floating live-preview card
-     4. Glass transfer card + wizard panels
-     5. Recipient step — identifier field, verified/not-found cards
-     6. Recipient step — manual fallback + saved beneficiaries
-     7. Radio-style auth-method buttons (speed / schedule)
-     8. Live summary panel (Details step)
-     9. Review step
-     10. Verify (authentication) step
-     11. Success step
+     1. Page shell / hero
+     2. Step rail
+     3. Two-column layout shell
+     4. Panels (open, unboxed)
+     5. Step 1 — lookup, verifying, recipient reveal, manual, saved
+     6. Step 2 — account pills, giant amount group, segmented controls
+     7. Step 3 — review list
+     8. Step 4 — verify / security
+     9. Step 5 — success
+     10. The Ledger (signature sticky passbook)
+     11. Shared bits (buttons override, inputs)
      12. Responsive
    ============================================================= */
 
 /* -------------------------------------------------------------
-   1. Page head
+   1. Page shell / hero
    ------------------------------------------------------------- */
-.transfer-main {
-  padding-block: 2.5rem 5rem;
+.send-main {
+  padding-block: 2.5rem 6rem;
 }
 
-.transfer-main .page-head {
-  text-align: center;
-  margin-bottom: 2.25rem;
+.send-hero {
+  max-width: 720px;
+  margin-bottom: 2.75rem;
 }
 
-.transfer-main .page-head p {
-  margin-inline: auto;
+.send-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--brass-dark);
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.send-eyebrow::before {
+  content: '';
+  width: 22px;
+  height: 1px;
+  background: var(--brass);
+}
+
+.send-hero h1 {
+  font-size: clamp(1.9rem, 3.4vw, 2.7rem);
+  margin-bottom: 0.6rem;
+  transition: opacity 0.25s ease;
+}
+
+.send-hero p {
+  font-size: 1.02rem;
+  max-width: 54ch;
+  transition: opacity 0.25s ease;
 }
 
 /* -------------------------------------------------------------
-   2. Animated step progress
+   2. Step rail
    ------------------------------------------------------------- */
-.wizard-progress {
-  margin-bottom: 2.5rem;
+.send-rail {
+  margin-top: 2.5rem;
 }
 
-.wizard-progress-track {
+.send-rail-track {
   position: relative;
-  height: 3px;
+  display: flex;
+  height: 2px;
   background: var(--line);
   border-radius: 999px;
-  margin: 16px 16px 0;
 }
 
-.wizard-progress-fill {
+.send-rail-fill {
   position: absolute;
   inset: 0;
   width: 0%;
   background: linear-gradient(90deg, var(--brass-dark), var(--brass));
   border-radius: 999px;
-  transition: width 0.5s cubic-bezier(0.65, 0, 0.35, 1);
+  transition: width 0.55s cubic-bezier(0.65, 0, 0.35, 1);
 }
 
-.wizard-steps {
+.send-rail-steps {
   display: flex;
   justify-content: space-between;
-  margin-top: -16px;
+  margin-top: -13px;
 }
 
-.wizard-step {
+.send-rail-step {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.6rem;
 }
 
-.wizard-step-dot {
+.send-rail-dot {
   position: relative;
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
-  background: var(--paper);
+  background: var(--ivory);
   border: 2px solid var(--line);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-size: 0.72rem;
   font-weight: 600;
   color: var(--slate);
-  transition: border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease, transform 0.3s ease;
+  transition: border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.wizard-step-check {
+.send-rail-check {
   position: absolute;
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   opacity: 0;
   transform: scale(0.6);
   transition: opacity 0.25s ease, transform 0.25s ease;
 }
 
-.wizard-step.is-active .wizard-step-dot {
+.send-rail-step.is-active .send-rail-dot {
   border-color: var(--brass);
   background: var(--brass);
   color: var(--ink);
-  transform: scale(1.08);
-  box-shadow: 0 0 0 5px rgba(181, 138, 68, 0.16);
+  transform: scale(1.15);
+  box-shadow: 0 0 0 6px rgba(181, 138, 68, 0.14);
 }
 
-.wizard-step.is-complete .wizard-step-dot {
+.send-rail-step.is-complete .send-rail-dot {
   border-color: var(--ink);
   background: var(--ink);
   color: var(--brass-light);
 }
 
-.wizard-step.is-complete .wizard-step-num {
+.send-rail-step.is-complete .send-rail-num {
   opacity: 0;
 }
 
-.wizard-step.is-complete .wizard-step-check {
+.send-rail-step.is-complete .send-rail-check {
   opacity: 1;
   transform: scale(1);
 }
 
-.wizard-step-name {
-  font-size: 0.76rem;
+.send-rail-name {
+  font-size: 0.74rem;
   font-weight: 600;
   color: var(--slate);
   transition: color 0.3s ease;
 }
 
-.wizard-step.is-active .wizard-step-name,
-.wizard-step.is-complete .wizard-step-name {
+.send-rail-step.is-active .send-rail-name,
+.send-rail-step.is-complete .send-rail-name {
   color: var(--ink);
 }
 
 /* -------------------------------------------------------------
-   3. Floating live-preview card
+   3. Two-column layout shell
    ------------------------------------------------------------- */
-.transfer-preview-float {
-  position: fixed;
-  top: calc(var(--app-header-h) + 1.5rem);
-  right: 2rem;
-  z-index: 40;
-  width: 240px;
-  background: linear-gradient(155deg, var(--ink) 0%, var(--ink-3) 100%);
-  color: var(--ivory);
-  border-radius: var(--radius-lg);
-  padding: 1.1rem 1.25rem;
-  box-shadow: var(--shadow-soft);
-  animation: preview-float 6s ease-in-out infinite;
-  opacity: 0;
-  transform: translateY(-8px);
-  transition: opacity 0.35s ease, transform 0.35s ease;
-  pointer-events: none;
+.send-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr);
+  gap: 4rem;
+  align-items: start;
+  margin-top: 3rem;
 }
 
-.transfer-preview-float.is-visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-@keyframes preview-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-
-.transfer-preview-row {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  margin-bottom: 0.85rem;
-}
-
-.transfer-preview-info {
+.send-col {
   min-width: 0;
-  display: flex;
-  flex-direction: column;
 }
 
-.transfer-preview-info strong {
-  font-size: 0.85rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.transfer-preview-info span {
-  font-size: 0.72rem;
-  color: rgba(246, 245, 240, 0.55);
-}
-
-.transfer-preview-amount {
-  font-size: 1.3rem;
-  font-weight: 500;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--line-dark);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .transfer-preview-float {
-    animation: none;
-  }
+.send-aside {
+  position: sticky;
+  top: calc(var(--app-header-h) + 1.75rem);
 }
 
 /* -------------------------------------------------------------
-   4. Glass transfer card + wizard panels
+   4. Panels — open, unboxed
    ------------------------------------------------------------- */
-.glass-card {
-  position: relative;
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-soft);
-  padding: 2.25rem;
-  overflow: hidden;
-}
-
-.glass-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--brass-dark), var(--brass), var(--brass-light));
-}
-
-.wizard-panel {
+.send-panel {
   display: none;
+  border: none;
+  padding: 0;
+  margin: 0;
 }
 
-.wizard-panel.is-active {
+.send-panel.is-active {
   display: block;
-  animation: panel-in 0.3s ease; /* keyframes come from dashboard.css */
+  animation: send-panel-in 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.wizard-panel-head {
-  margin-bottom: 1.75rem;
+@keyframes send-panel-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.wizard-panel-head h2 {
-  font-size: 1.4rem;
-  margin-bottom: 0.35rem;
+.send-panel-head {
+  margin-bottom: 2rem;
 }
 
-.wizard-panel-head p {
-  font-size: 0.92rem;
+.send-panel-head h2 {
+  font-size: 1.55rem;
+  margin-bottom: 0.4rem;
 }
 
-.wizard-actions {
+.send-panel-head p {
+  font-size: 0.96rem;
+}
+
+.send-section-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--slate);
+  margin-bottom: 0.9rem;
+  display: block;
+}
+
+.send-actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-top: 2rem;
-  padding-top: 1.5rem;
+  margin-top: 2.5rem;
+  padding-top: 1.75rem;
   border-top: 1px solid var(--line);
 }
 
-.wizard-divider-label {
-  font-size: 0.78rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--slate);
-  margin: 1.5rem 0 1rem;
+/* -------------------------------------------------------------
+   5. Step 1 — lookup, verifying, recipient reveal, manual, saved
+   ------------------------------------------------------------- */
+.send-lookup-card {
+  position: relative;
+  background: var(--paper);
+  border-radius: var(--radius-lg);
+  padding: 2rem 2.1rem;
+  box-shadow: var(--shadow-card);
+  margin-bottom: 1.5rem;
 }
 
-/* -------------------------------------------------------------
-   5. Recipient step — identifier field, verified/not-found cards
-   ------------------------------------------------------------- */
-.field--identifier input {
-  font-size: 1.05rem;
-  padding-block: 1.05rem;
+.send-lookup-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 2.1rem; right: 2.1rem;
+  height: 3px;
+  border-radius: 0 0 4px 4px;
+  background: linear-gradient(90deg, var(--brass-dark), var(--brass), var(--brass-light));
+}
+
+.send-lookup-row {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.send-lookup-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: rgba(181, 138, 68, 0.1);
+  color: var(--brass-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.send-lookup-icon svg {
+  width: 21px;
+  height: 21px;
+}
+
+.send-lookup-input-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.send-lookup-input-wrap label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--slate);
+  margin-bottom: 0.3rem;
+}
+
+#recipient-identifier {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  color: var(--ink);
+  letter-spacing: 0.01em;
+}
+
+#recipient-identifier::placeholder {
+  color: var(--slate);
+  opacity: 0.5;
+  font-family: var(--font-body);
+  font-size: 1rem;
+}
+
+#recipient-identifier:focus {
+  outline: none;
+}
+
+.send-lookup-underline {
+  height: 2px;
+  background: var(--line);
+  margin-top: 1.4rem;
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.send-lookup-underline::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 0%;
+  background: var(--brass);
+  transition: width 0.3s ease;
+}
+
+.send-lookup-card:focus-within .send-lookup-underline::after {
+  width: 100%;
 }
 
 .recipient-lookup-status {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.6rem;
   font-size: 0.86rem;
   color: var(--slate);
-  min-height: 1.4rem;
-  margin-bottom: 0.5rem;
+  min-height: 1.2rem;
+  margin: 1rem 0 0.25rem;
 }
 
 .recipient-lookup-spinner {
@@ -310,28 +365,75 @@
   border-radius: 50%;
   border: 2px solid var(--line);
   border-top-color: var(--brass);
-  animation: recipient-spin 0.7s linear infinite;
+  animation: send-spin 0.7s linear infinite;
 }
 
-@keyframes recipient-spin {
+@keyframes send-spin {
   to { transform: rotate(360deg); }
 }
 
+/* Recipient found — profile reveal, not a heavy boxed banner */
 .recipient-found-card {
-  margin-top: 0.5rem;
-  margin-bottom: 1.5rem;
-  padding: 1.5rem;
-  border: 1.5px solid var(--green);
-  background: var(--green-bg);
+  margin-top: 1.25rem;
+  padding: 1.6rem 1.75rem;
   border-radius: var(--radius-lg);
-  animation: panel-in 0.3s ease;
+  background: linear-gradient(155deg, rgba(31, 138, 95, 0.07), rgba(31, 138, 95, 0.02));
+  border: 1px solid rgba(31, 138, 95, 0.22);
+  animation: send-reveal 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes send-reveal {
+  from { opacity: 0; transform: translateY(10px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .recipient-found-head {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.25rem;
+  gap: 1.1rem;
+  margin-bottom: 1.3rem;
+}
+
+.recipient-avatar-ring {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  padding: 3px;
+  background: conic-gradient(from 200deg, var(--brass-light), var(--brass), var(--brass-dark), var(--brass-light));
+}
+
+.recipient-avatar-ring .avatar-initial {
+  width: 100%;
+  height: 100%;
+  font-size: 1.3rem;
+}
+
+.recipient-seal {
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--green);
+  color: var(--ivory);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--paper);
+  transform: scale(0);
+  animation: send-seal-pop 0.4s 0.15s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes send-seal-pop {
+  to { transform: scale(1); }
+}
+
+.recipient-seal svg {
+  width: 11px;
+  height: 11px;
 }
 
 .recipient-found-head > div {
@@ -340,31 +442,31 @@
 }
 
 .recipient-found-title {
-  font-size: 0.76rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   color: var(--green);
   margin-bottom: 0.15rem;
 }
 
 .recipient-found-head strong {
   display: block;
-  font-size: 1.05rem;
+  font-size: 1.12rem;
   color: var(--ink);
 }
 
 .recipient-found-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.9rem 1.5rem;
-  padding-top: 1.1rem;
+  padding-top: 1.15rem;
   border-top: 1px dashed rgba(31, 138, 95, 0.3);
-  margin-bottom: 1rem;
+  margin-bottom: 1.1rem;
 }
 
 .recipient-found-grid dt {
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   color: var(--slate);
   margin-bottom: 0.15rem;
 }
@@ -382,22 +484,23 @@
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
+  padding: 0;
 }
 
 .recipient-not-found-card {
   display: flex;
   align-items: flex-start;
   gap: 0.85rem;
-  padding: 1.1rem 1.25rem;
-  border: 1.5px solid rgba(192, 69, 59, 0.3);
-  background: var(--red-bg);
+  padding: 1.1rem 1.3rem;
   border-radius: var(--radius-md);
-  margin-bottom: 1.5rem;
+  background: var(--red-bg);
+  margin-top: 1.25rem;
+  margin-bottom: 0.25rem;
 }
 
 .recipient-not-found-card svg {
-  width: 20px;
-  height: 20px;
+  width: 19px;
+  height: 19px;
   color: var(--red);
   flex-shrink: 0;
   margin-top: 0.1rem;
@@ -415,31 +518,85 @@
   color: var(--slate-dark);
 }
 
-/* -------------------------------------------------------------
-   6. Recipient step — manual fallback + saved beneficiaries
-   ------------------------------------------------------------- */
-.recipient-saved-toggle {
+/* Manual fallback — filled, borderless inputs */
+.send-manual-fields {
   margin-top: 1.75rem;
-  padding-top: 1.5rem;
+}
+
+.send-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1.1rem;
+}
+
+.send-field label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.send-field input,
+.send-field select,
+.send-field textarea {
+  border: none;
+  background: rgba(10, 22, 40, 0.045);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  font-size: 0.95rem;
+  color: var(--slate-dark);
+  transition: box-shadow 0.18s ease, background-color 0.18s ease;
+  width: 100%;
+}
+
+.send-field input:focus,
+.send-field select:focus,
+.send-field textarea:focus {
+  outline: none;
+  background: rgba(181, 138, 68, 0.09);
+  box-shadow: 0 0 0 3px rgba(181, 138, 68, 0.18);
+}
+
+.send-field-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.send-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+  color: var(--slate);
+}
+
+.send-checkbox input {
+  margin-top: 0.2rem;
+  accent-color: var(--brass);
+}
+
+/* Saved beneficiaries — collapsible, secondary */
+.send-saved-toggle {
+  margin-top: 2rem;
+  padding-top: 1.75rem;
   border-top: 1px solid var(--line);
 }
 
-.recipient-saved-toggle summary {
+.send-saved-toggle summary {
   cursor: pointer;
-  font-size: 0.86rem;
+  font-size: 0.88rem;
   font-weight: 600;
   color: var(--brass-dark);
   list-style: none;
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
 }
 
-.recipient-saved-toggle summary::-webkit-details-marker {
-  display: none;
-}
+.send-saved-toggle summary::-webkit-details-marker { display: none; }
 
-.recipient-saved-toggle summary::before {
+.send-saved-toggle summary::before {
   content: '';
   width: 8px;
   height: 8px;
@@ -449,34 +606,30 @@
   transition: transform 0.2s ease;
 }
 
-.recipient-saved-toggle[open] summary::before {
-  transform: rotate(45deg);
-}
+.send-saved-toggle[open] summary::before { transform: rotate(45deg); }
 
-.recipient-saved-toggle > *:not(summary) {
-  margin-top: 1.25rem;
-}
+.send-saved-toggle > *:not(summary) { margin-top: 1.4rem; }
 
-.recipient-quick-label {
-  font-size: 0.76rem;
-  font-weight: 600;
+.send-quick-label {
+  font-size: 0.74rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   color: var(--slate);
   margin-bottom: 0.75rem;
 }
 
-.recipient-quick-strip {
+.send-quick-strip {
   display: flex;
-  gap: 0.85rem;
+  gap: 0.9rem;
   overflow-x: auto;
   padding-bottom: 0.5rem;
   margin-bottom: 1.75rem;
 }
 
-.recipient-quick-chip {
+.send-quick-chip {
   flex: 0 0 auto;
-  width: 62px;
+  width: 64px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -490,26 +643,21 @@
   text-align: center;
 }
 
-.recipient-quick-chip .avatar-initial {
-  transition: transform 0.15s ease;
-}
-
-.recipient-quick-chip:hover .avatar-initial {
-  transform: translateY(-2px);
-}
-
-.recipient-quick-chip span:last-child {
+.send-quick-chip .avatar-initial { transition: transform 0.15s ease; }
+.send-quick-chip:hover .avatar-initial { transform: translateY(-2px); }
+.send-quick-chip span:last-child {
   width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.tx-search {
+.send-search {
   position: relative;
+  margin-bottom: 1rem;
 }
 
-.tx-search svg {
+.send-search svg {
   position: absolute;
   top: 50%;
   left: 1rem;
@@ -520,18 +668,17 @@
   pointer-events: none;
 }
 
-.tx-search input {
+.send-search input {
   width: 100%;
   padding: 0.85rem 1rem 0.85rem 2.75rem;
-  border: 1px solid var(--line);
-  background: var(--paper);
-  border-radius: var(--radius-sm);
+  border: none;
+  background: rgba(10, 22, 40, 0.045);
+  border-radius: 12px;
   font-size: 0.9rem;
 }
 
-.tx-search input:focus {
+.send-search input:focus {
   outline: none;
-  border-color: var(--brass);
   box-shadow: 0 0 0 3px rgba(181, 138, 68, 0.18);
 }
 
@@ -545,160 +692,204 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 0.85rem;
-  padding: 0.9rem 1.1rem;
-  border: 1.5px solid var(--line);
+  gap: 0.9rem;
+  padding: 0.95rem 1.1rem;
   border-radius: var(--radius-md);
+  background: rgba(10, 22, 40, 0.03);
   cursor: pointer;
-  transition: border-color 0.18s ease, background-color 0.18s ease;
+  transition: background-color 0.18s ease, box-shadow 0.18s ease;
 }
 
-.beneficiary-card input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.beneficiary-card:hover {
-  border-color: var(--brass);
-}
-
+.beneficiary-card input { position: absolute; opacity: 0; width: 0; height: 0; }
+.beneficiary-card:hover { background: rgba(181, 138, 68, 0.08); }
 .beneficiary-card.is-selected {
-  border-color: var(--brass);
-  background: rgba(181, 138, 68, 0.07);
+  background: rgba(181, 138, 68, 0.1);
+  box-shadow: inset 0 0 0 1.5px var(--brass);
 }
 
-.beneficiary-card-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.beneficiary-card-info strong {
-  font-size: 0.9rem;
-  color: var(--ink);
-}
-
-.beneficiary-card-info span {
-  font-size: 0.78rem;
-  color: var(--slate);
-}
+.beneficiary-card-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.beneficiary-card-info strong { font-size: 0.9rem; color: var(--ink); }
+.beneficiary-card-info span { font-size: 0.78rem; color: var(--slate); }
 
 .beneficiary-card-check {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
+  width: 20px; height: 20px; border-radius: 50%;
   border: 1.5px solid var(--line);
   color: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
   transition: border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease;
 }
-
-.beneficiary-card-check svg {
-  width: 12px;
-  height: 12px;
-}
-
+.beneficiary-card-check svg { width: 12px; height: 12px; }
 .beneficiary-card.is-selected .beneficiary-card-check {
-  background: var(--brass);
-  border-color: var(--brass);
-  color: var(--ink);
+  background: var(--brass); border-color: var(--brass); color: var(--ink);
 }
 
-.empty-state-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--ivory);
+.send-empty {
+  text-align: center;
+  padding: 2rem 1rem;
   color: var(--slate);
+  font-size: 0.9rem;
+}
+
+.send-empty-icon {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--ivory); color: var(--slate);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 1rem;
+}
+.send-empty-icon svg { width: 22px; height: 22px; }
+.send-empty h3 { font-size: 0.98rem; margin-bottom: 0.35rem; }
+.send-empty p { font-size: 0.85rem; max-width: 32ch; margin-inline: auto; }
+
+/* -------------------------------------------------------------
+   6. Step 2 — account pills, giant amount group, segmented controls
+   ------------------------------------------------------------- */
+.send-account-strip {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding-bottom: 0.4rem;
+  margin-bottom: 2rem;
+}
+
+.send-account-pill {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  border: none;
+  background: rgba(10, 22, 40, 0.04);
+  border-radius: 999px;
+  padding: 0.65rem 1.15rem 0.65rem 0.65rem;
+  cursor: pointer;
+  transition: background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.send-account-pill:hover { transform: translateY(-1px); }
+
+.send-account-pill[aria-checked="true"] {
+  background: rgba(181, 138, 68, 0.12);
+  box-shadow: inset 0 0 0 1.5px var(--brass);
+}
+
+.send-account-pill-flag {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--ink); color: var(--brass-light);
+  font-family: var(--font-mono); font-weight: 600; font-size: 0.82rem;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.send-account-pill-text { text-align: left; }
+.send-account-pill-text strong { display: block; font-size: 0.84rem; color: var(--ink); }
+.send-account-pill-text span { font-family: var(--font-mono); font-size: 0.8rem; color: var(--slate); }
+
+.send-amount-group {
+  background: var(--paper);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 2rem 2.1rem 1.6rem;
+  margin-bottom: 1.75rem;
+}
+
+.send-amount-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+}
+
+.send-amount-col { flex: 1; min-width: 0; }
+.send-amount-col label {
+  font-size: 0.78rem; font-weight: 600; color: var(--slate);
+  display: block; margin-bottom: 0.5rem;
+}
+
+.send-amount-field {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.send-amount-field .cur-symbol {
+  font-family: var(--font-mono);
+  font-size: clamp(1.3rem, 3vw, 1.9rem);
+  color: var(--slate);
+  flex-shrink: 0;
+}
+
+.send-amount-field input {
+  width: 100%;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: clamp(1.9rem, 5vw, 2.7rem);
+  font-weight: 500;
+  color: var(--ink);
+  padding: 0;
+}
+
+.send-amount-field input:focus { outline: none; }
+
+.send-amount-field input[readonly] { color: var(--slate-dark); }
+
+.send-currency-select {
+  appearance: none;
+  border: none;
+  background: rgba(10, 22, 40, 0.05);
+  border-radius: 999px;
+  padding: 0.55rem 2rem 0.55rem 1rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--ink);
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%235b6b7c' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  background-size: 12px;
+}
+
+.send-currency-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(181, 138, 68, 0.18);
+}
+
+.send-currency-tag {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--ink);
+  background: rgba(10, 22, 40, 0.05);
+  border-radius: 999px;
+  padding: 0.55rem 1rem;
+  flex-shrink: 0;
+}
+
+.send-amount-swap {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 1rem;
+  width: 34px;
+  height: 34px;
+  color: var(--brass-dark);
+  margin-bottom: 0.6rem;
 }
 
-.empty-state-icon svg {
-  width: 24px;
-  height: 24px;
-}
+.send-amount-swap svg { width: 20px; height: 20px; }
 
-.empty-state h3 {
-  font-size: 1rem;
-  margin-bottom: 0.4rem;
-}
-
-.empty-state p {
-  font-size: 0.86rem;
-  max-width: 32ch;
-  margin-inline: auto;
-}
-
-/* -------------------------------------------------------------
-   7. Radio-style auth-method buttons (speed / schedule)
-   ------------------------------------------------------------- */
-.auth-method-btn--radio {
-  position: relative;
-  flex: 1;
-  min-width: 150px;
-  cursor: pointer;
-}
-
-.auth-method-btn--radio input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-/* -------------------------------------------------------------
-   8. Live summary panel (Details step)
-   ------------------------------------------------------------- */
-.transfer-live-summary {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-  background: var(--ivory);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  padding: 1.1rem 1.25rem;
-  margin-bottom: 1.5rem;
-  transition: background-color 0.2s ease;
-}
-
-.transfer-fee-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.86rem;
-  color: var(--slate-dark);
-}
-
-.transfer-fee-row span:first-child {
-  color: var(--slate);
-}
-
-.transfer-fee-row--total {
-  padding-top: 0.65rem;
-  border-top: 1px dashed var(--line);
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--ink);
-}
-
-.transfer-fee-row--total span:first-child {
-  color: var(--ink);
-  font-weight: 700;
+.send-amount-divider {
+  height: 1px;
+  margin-block: 1.5rem;
+  background-image: radial-gradient(circle, var(--line) 1.4px, transparent 1.4px);
+  background-size: 8px 1px;
+  background-repeat: repeat-x;
 }
 
 .balance-note {
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   color: var(--slate);
-  margin-bottom: 1.5rem;
 }
 
 .balance-note--warning {
@@ -706,37 +897,78 @@
   font-weight: 600;
 }
 
-/* -------------------------------------------------------------
-   9. Review step
-   ------------------------------------------------------------- */
-.wizard-review-card {
-  background: var(--ivory);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  padding: 0.25rem 1.25rem;
-  margin-bottom: 1.5rem;
+.send-segmented {
+  display: inline-flex;
+  background: rgba(10, 22, 40, 0.045);
+  border-radius: 999px;
+  padding: 0.3rem;
+  gap: 0.2rem;
 }
 
-.wizard-review-row {
+.send-segmented-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: none;
+  background: transparent;
+  padding: 0.6rem 1.15rem;
+  border-radius: 999px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--slate-dark);
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.send-segmented-btn svg { width: 16px; height: 16px; }
+
+.send-segmented-btn.is-selected {
+  background: var(--ink);
+  color: var(--ivory);
+}
+
+.send-segmented-btn input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.send-field-group {
   display: grid;
-  grid-template-columns: 130px 1fr auto;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-top: 1.75rem;
+}
+
+/* -------------------------------------------------------------
+   7. Step 3 — review list
+   ------------------------------------------------------------- */
+.send-review-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.send-review-row {
+  display: grid;
+  grid-template-columns: 150px 1fr auto;
   align-items: center;
   gap: 0.75rem;
-  padding-block: 0.9rem;
+  padding-block: 1.05rem;
   border-bottom: 1px solid var(--line);
 }
 
-.wizard-review-row:last-child {
-  border-bottom: none;
-}
+.send-review-row:first-child { padding-top: 0; }
+.send-review-row:last-child { border-bottom: none; }
 
-.wizard-review-row span {
+.send-review-row span:first-child {
   font-size: 0.82rem;
   color: var(--slate);
 }
 
-.wizard-review-row strong {
-  font-size: 0.9rem;
+.send-review-row strong {
+  font-size: 0.94rem;
   font-weight: 600;
   color: var(--ink);
   overflow: hidden;
@@ -744,154 +976,489 @@
   white-space: nowrap;
 }
 
-/* .wizard-edit-link is red by default elsewhere (Remove/Revoke).
-   "Edit" here isn't destructive, so it gets its own color rather
-   than changing the shared class everyone else relies on. */
-.wizard-review-row .wizard-edit-link {
+.send-edit-link {
+  background: transparent;
+  border: none;
   color: var(--brass-dark);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
 }
 
-/* -------------------------------------------------------------
-   10. Verify (authentication) step
-   ------------------------------------------------------------- */
-.verify-notice {
+.send-review-note {
   display: flex;
   align-items: flex-start;
-  gap: 0.75rem;
+  gap: 0.7rem;
+  margin-top: 1.75rem;
   padding: 1rem 1.15rem;
-  background: var(--amber-bg);
-  border: 1px solid rgba(179, 119, 29, 0.3);
   border-radius: var(--radius-md);
-  margin-bottom: 1.5rem;
+  background: var(--amber-bg);
   font-size: 0.85rem;
   color: var(--slate-dark);
 }
 
-.verify-notice svg {
-  width: 19px;
-  height: 19px;
+.send-review-note svg {
+  width: 18px; height: 18px;
   color: var(--amber);
   flex-shrink: 0;
   margin-top: 0.1rem;
 }
 
 /* -------------------------------------------------------------
-   11. Success step
+   8. Step 4 — verify / security
    ------------------------------------------------------------- */
-.transfer-success {
-  text-align: center;
-  padding-block: 1.5rem;
+.send-verify-visual {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
 }
 
-.transfer-success-icon {
-  width: 72px;
-  height: 72px;
+.send-shield {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.send-shield svg.ring {
+  position: absolute;
+  inset: 0;
+  fill: none;
+  stroke: rgba(181, 138, 68, 0.35);
+}
+
+.send-shield .ring--pulse {
+  transform-origin: center;
+  animation: send-pulse-ring 3.2s ease-out infinite;
+}
+
+@keyframes send-pulse-ring {
+  0% { opacity: 0.9; transform: scale(0.85); }
+  70% { opacity: 0; transform: scale(1.35); }
+  100% { opacity: 0; transform: scale(1.35); }
+}
+
+.send-shield-body {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(155deg, var(--ink), var(--ink-3));
+  color: var(--brass-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 24px -10px rgba(10, 22, 40, 0.4);
+}
+
+.send-shield-body svg { width: 26px; height: 26px; }
+
+.send-verify-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.send-verify-summary strong {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+
+.send-verify-summary span {
+  font-size: 0.85rem;
+  color: var(--slate);
+}
+
+.send-password-field {
+  max-width: 380px;
+  margin-inline: auto;
+}
+
+.send-password-field .password-field-wrap input {
+  border: none;
+  background: rgba(10, 22, 40, 0.045);
+  border-radius: 12px;
+  padding: 0.95rem 2.75rem 0.95rem 1rem;
+  font-size: 1rem;
+  width: 100%;
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+
+.send-password-field .password-field-wrap input:focus {
+  outline: none;
+  background: rgba(181, 138, 68, 0.09);
+  box-shadow: 0 0 0 3px rgba(181, 138, 68, 0.18);
+}
+
+.send-password-field .field-error {
+  display: block;
+  text-align: center;
+  margin-top: 0.6rem;
+  font-size: 0.8rem;
+  color: var(--red);
+  min-height: 1.1em;
+}
+
+/* -------------------------------------------------------------
+   9. Step 5 — success
+   ------------------------------------------------------------- */
+.send-success {
+  text-align: center;
+  padding-block: 1rem;
+}
+
+.send-success-icon {
+  width: 84px;
+  height: 84px;
   border-radius: 50%;
   background: var(--green-bg);
   color: var(--green);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 1.5rem;
-  animation: success-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  margin: 0 auto 1.75rem;
+  box-shadow: 0 0 0 8px rgba(31, 138, 95, 0.06);
 }
 
-@keyframes success-pop {
-  from { transform: scale(0.6); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+.send-success-icon svg { width: 38px; height: 38px; }
+
+.send-success-icon .checkmark-path {
+  stroke-dasharray: 28;
+  stroke-dashoffset: 28;
+  animation: send-check-draw 0.5s 0.2s cubic-bezier(0.65, 0, 0.35, 1) forwards;
 }
 
-.transfer-success-icon svg {
-  width: 32px;
-  height: 32px;
+@keyframes send-check-draw {
+  to { stroke-dashoffset: 0; }
 }
 
-.transfer-success p {
-  max-width: 40ch;
+.send-success h2 { margin-bottom: 0.6rem; }
+
+.send-success p {
+  max-width: 42ch;
   margin: 0 auto 2rem;
 }
 
-.transfer-success-actions {
+.send-success-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 0.75rem;
-  margin-top: 1.75rem;
+  margin-top: 2rem;
 }
 
-.transfer-success-actions .btn {
-  flex: 1;
-  min-width: 140px;
+.send-success-actions .btn { flex: 1; min-width: 150px; }
+
+/* -------------------------------------------------------------
+   10. The Ledger — signature sticky passbook panel
+   ------------------------------------------------------------- */
+.ledger {
+  position: relative;
+  background: linear-gradient(165deg, var(--ink) 0%, var(--ink-3) 100%);
+  color: var(--ivory);
+  border-radius: var(--radius-lg);
+  padding: 1.85rem 1.9rem 1.6rem;
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+  transition: box-shadow 0.4s ease;
+}
+
+.ledger::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--brass-dark), var(--brass), var(--brass-light));
+}
+
+.ledger.is-complete {
+  box-shadow: var(--shadow-soft), 0 0 0 2px rgba(181, 138, 68, 0.55);
+}
+
+.ledger-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.4rem;
+}
+
+.ledger-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(246, 245, 240, 0.55);
+}
+
+.ledger-mark {
+  width: 24px;
+  height: 24px;
+  color: var(--brass-light);
+  opacity: 0.85;
+}
+
+.ledger-recipient {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 1.4rem;
+}
+
+.ledger-recipient .avatar-initial {
+  width: 42px;
+  height: 42px;
+  background: rgba(246, 245, 240, 0.1);
+  color: var(--brass-light);
+  flex-shrink: 0;
+}
+
+.ledger-recipient-text { min-width: 0; flex: 1; }
+
+.ledger-recipient-text strong {
+  display: block;
+  font-size: 0.98rem;
+  color: var(--ivory);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ledger-recipient-text span {
+  font-size: 0.78rem;
+  color: rgba(246, 245, 240, 0.55);
+}
+
+.ledger-seal-badge {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--brass-light), var(--brass-dark));
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0;
+  transform: scale(0.5);
+  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.ledger-seal-badge.is-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.ledger-seal-badge svg { width: 13px; height: 13px; }
+
+.ledger-perforation {
+  height: 1px;
+  margin-block: 1.3rem;
+  background-image: radial-gradient(circle, rgba(246, 245, 240, 0.18) 1.4px, transparent 1.4px);
+  background-size: 9px 1px;
+  background-repeat: repeat-x;
+}
+
+.ledger-amounts {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 0.3rem;
+}
+
+.ledger-amount-block { flex: 1; min-width: 0; }
+
+.ledger-amount-block span {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(246, 245, 240, 0.5);
+  margin-bottom: 0.3rem;
+}
+
+.ledger-amount-block strong {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 1.3rem;
+  font-weight: 500;
+  color: var(--ivory);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ledger-arrow {
+  width: 16px;
+  height: 16px;
+  color: var(--brass-light);
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.ledger-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.ledger-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.83rem;
+  color: rgba(246, 245, 240, 0.65);
+}
+
+.ledger-row span:last-child {
+  font-family: var(--font-mono);
+  color: var(--ivory);
+  font-size: 0.85rem;
+}
+
+.ledger-row--total {
+  padding-top: 0.75rem;
+  margin-top: 0.2rem;
+  border-top: 1px solid var(--line-dark);
+  font-size: 0.92rem;
+  color: rgba(246, 245, 240, 0.85);
+  font-weight: 600;
+}
+
+.ledger-row--total span:last-child {
+  font-size: 1.05rem;
+  color: var(--brass-light);
+}
+
+.ledger-foot {
+  margin-top: 1.4rem;
+  padding-top: 1.1rem;
+  border-top: 1px dashed var(--line-dark);
+  font-size: 0.78rem;
+  color: rgba(246, 245, 240, 0.45);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ledger-foot svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+/* Ledger stamp — appears on the success step */
+.ledger-stamp {
+  position: absolute;
+  top: 38%;
+  right: -1.2rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 0.12em;
+  color: var(--brass-light);
+  border: 2px solid var(--brass-light);
+  border-radius: 10px;
+  padding: 0.35rem 1rem;
+  transform: rotate(-9deg) scale(0.7);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease 0.5s, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s;
+}
+
+.ledger-stamp.is-visible {
+  opacity: 0.9;
+  transform: rotate(-9deg) scale(1);
 }
 
 /* -------------------------------------------------------------
-   Small overrides on shared classes
+   11. Shared bits
    ------------------------------------------------------------- */
-.account-strip-item[aria-checked="true"] {
-  border-color: var(--brass);
-  background: rgba(181, 138, 68, 0.07);
+.send-actions .btn-ghost {
+  border-color: transparent;
+  color: var(--slate-dark);
+}
+
+.send-actions .btn-ghost:hover {
+  background: rgba(10, 22, 40, 0.05);
 }
 
 /* -------------------------------------------------------------
    12. Responsive
    ------------------------------------------------------------- */
 @media (max-width: 1180px) {
-  .transfer-preview-float {
-    display: none;
+  .send-layout {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+  .send-aside {
+    position: static;
+    order: -1;
+  }
+  .ledger {
+    max-width: 480px;
   }
 }
 
 @media (max-width: 640px) {
-  .glass-card {
-    padding: 1.5rem;
+  .send-lookup-card,
+  .send-amount-group {
+    padding: 1.5rem 1.4rem;
   }
-
-  .wizard-step-name {
-    font-size: 0.66rem;
-  }
-
   .recipient-found-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .send-field-row-2,
+  .send-field-group {
     grid-template-columns: 1fr;
   }
-
-  .wizard-review-row {
+  .send-review-row {
     grid-template-columns: 1fr;
     gap: 0.3rem;
   }
-
-  .wizard-review-row .wizard-edit-link {
+  .send-review-row .send-edit-link {
     justify-self: start;
   }
-
-  .auth-methods {
-    flex-direction: column;
-  }
-
-  .auth-method-btn--radio {
-    min-width: 0;
-  }
-
-  .transfer-success-actions {
-    flex-direction: column;
-  }
-
-  .transfer-success-actions .btn {
+  .send-segmented {
     width: 100%;
   }
-
-  .recipient-quick-chip {
-    width: 54px;
+  .send-segmented-btn {
+    flex: 1;
+    justify-content: center;
   }
-
-  .wizard-actions {
+  .send-success-actions {
+    flex-direction: column;
+  }
+  .send-success-actions .btn {
+    width: 100%;
+  }
+  .ledger {
+    max-width: none;
+  }
+  .ledger-stamp {
+    right: 0.5rem;
+    font-size: 0.95rem;
+  }
+  .send-actions {
     flex-wrap: wrap;
   }
 }
 
-@media (max-width: 400px) {
-  .wizard-step-dot {
-    width: 26px;
-    height: 26px;
-    font-size: 0.76rem;
+@media (prefers-reduced-motion: reduce) {
+  .send-panel.is-active,
+  .recipient-found-card,
+  .recipient-lookup-spinner,
+  .send-shield .ring--pulse,
+  .recipient-seal,
+  .ledger-seal-badge,
+  .ledger-stamp,
+  .send-success-icon .checkmark-path {
+    animation: none !important;
+    transition: none !important;
   }
+  .recipient-seal { transform: scale(1); }
+  .ledger-seal-badge.is-visible { opacity: 1; transform: scale(1); }
+  .send-success-icon .checkmark-path { stroke-dashoffset: 0; }
 }
