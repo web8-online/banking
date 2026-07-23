@@ -31,6 +31,14 @@
         failures.
      7. Send: addBeneficiary() (if the recipient is new and the user
         opted to save them) + createTransfer(), then the success step.
+        createTransfer() is now given BOTH a receiverAccountId (only
+        when the caller legitimately already has one — not used on
+        this page) AND a receiverIdentifier (the raw account
+        number/IBAN we have on hand, whatever its source) — the
+        process_transfer RPC resolves a real Meridian account from
+        that identifier itself, server-side, so a transfer to another
+        Meridian user now actually gets credited instead of sitting
+        on "Processing" forever. See getRecipientIdentifierForTransfer().
 
      NEW: a single "Ledger" panel (#ledger) is now the one source of
      truth for recipient + amounts + fees, visible and updating live
@@ -125,6 +133,12 @@ function escapeHtml(str) {
  * warning instead of throwing and killing the rest of the handler
  * (a thrown error here would otherwise stop every line after it,
  * which is one way a "still showing" bug can persist indefinitely).
+ *
+ * IMPORTANT: every visibility toggle in this file goes through this
+ * function — never assign `.hidden` directly. Two spots used to do
+ * that (the "Send on" scheduled-date field, and the "recent
+ * recipients" wrapper); both were silently not hiding for exactly
+ * the reason explained above, which is why this rule is now absolute.
  */
 function setCardHidden(elId, isHidden) {
   const el = document.getElementById(elId);
@@ -450,10 +464,10 @@ function renderRecentStrip() {
     .filter(Boolean);
 
   if (!matches.length) {
-    wrap.hidden = true;
+    setCardHidden('recipient-recent-wrap', true);
     return;
   }
-  wrap.hidden = false;
+  setCardHidden('recipient-recent-wrap', false);
   strip.innerHTML = matches
     .map(
       (b) => `
@@ -623,6 +637,24 @@ function getRecipientSummary() {
       country: countrySelect.value,
     },
   };
+}
+
+/**
+ * The raw account number/IBAN text to send along with the transfer,
+ * regardless of which of the three recipient paths produced it.
+ * process_transfer() resolves this against real Meridian accounts
+ * server-side — if it matches, that account gets credited and the
+ * transfer completes; if not, it's treated as a genuine external
+ * recipient (exactly as before). This is what makes sending to
+ * another Meridian user's account actually arrive, instead of the
+ * old behavior where receiverAccountId was always null here.
+ */
+function getRecipientIdentifierForTransfer() {
+  if (selectedBeneficiary?.account_number) return selectedBeneficiary.account_number;
+  if (verifiedRecipient?.source === 'beneficiary') return verifiedRecipient.beneficiary?.account_number || null;
+  if (verifiedRecipient?.source === 'internal') return $('#recipient-identifier')?.value.trim() || null;
+  const manualAccount = $('#new-beneficiary-account')?.value.trim();
+  return manualAccount || null;
 }
 
 /* -----------------------------------------------------------
@@ -899,15 +931,18 @@ async function handleConfirmSend() {
     }
   }
 
-  // NOTE: receiverAccountId stays null even for an "internal"
-  // verified match — find_account_holder() only returns a name/
-  // bank/currency by design (see the comment above findRecipient()
-  // in database.js), never another user's account id. Real P2P
-  // crediting would need that RPC extended to also return an
-  // account id, still via a SECURITY DEFINER function.
+  // receiverAccountId stays null here on purpose — this page never has
+  // a real account id for the recipient (find_account_holder() only
+  // ever returns a name/bank/currency, by design). Instead we pass
+  // receiverIdentifier: the account number/IBAN we have on hand,
+  // whatever its source. process_transfer() resolves a real Meridian
+  // account from that identifier itself, server-side — if it matches,
+  // that account actually gets credited; if not, this behaves exactly
+  // like a genuine external wire (debit-only, status 'Processing').
   const { data: tx, error } = await createTransfer({
     senderAccountId: fromAccount.id,
     receiverAccountId: null,
+    receiverIdentifier: getRecipientIdentifierForTransfer(),
     amount: sendAmount,
     fee,
     currency: fromAccount.currency,
@@ -935,7 +970,9 @@ async function handleConfirmSend() {
   $('#success-reference').textContent = tx.transaction_reference;
   $('#success-status').textContent = tx.status;
   $('#success-balance').textContent = `${currencySymbol(fromAccount.currency)}${formatAmount(Math.max(0, remainingBalance))}`;
-  $('#success-message').textContent = `${currencySymbol(fromAccount.currency)}${formatAmount(sendAmount)} is on its way to ${recipient.name}. Most transfers arrive within ${speedLabel}.`;
+  $('#success-message').textContent = tx.status === 'Completed'
+    ? `${currencySymbol(fromAccount.currency)}${formatAmount(sendAmount)} has been sent to ${recipient.name} and is already available to them.`
+    : `${currencySymbol(fromAccount.currency)}${formatAmount(sendAmount)} is on its way to ${recipient.name}. Most transfers arrive within ${speedLabel}.`;
 
   pwInput.value = '';
   goToStep(5);
@@ -956,7 +993,7 @@ function resetWizard() {
   authLockedUntil = 0;
   $$('input[name="speed"]').forEach((r) => r.closest('.send-segmented-btn')?.classList.toggle('is-selected', r.checked));
   $$('input[name="schedule"]').forEach((r) => r.closest('.send-segmented-btn')?.classList.toggle('is-selected', r.checked));
-  $('#schedule-later-field').hidden = true;
+  setCardHidden('schedule-later-field', true);
   renderBeneficiaryList('');
   renderRecentStrip();
   renderFromAccountStrip();
@@ -1019,6 +1056,7 @@ function initPasswordToggle() {
   // visible in the HTML would show up on first load, before the
   // person has typed anything at all.
   resetNewRecipientUi();
+  setCardHidden('schedule-later-field', true);
 
   // Safety net: every button in this form is type="button" on
   // purpose (the wizard advances via JS, never a real submit), but
@@ -1061,7 +1099,7 @@ function initPasswordToggle() {
   $$('input[name="speed"]').forEach((r) => r.addEventListener('change', recalcConversion));
   $$('input[name="schedule"]').forEach((r) =>
     r.addEventListener('change', () => {
-      $('#schedule-later-field').hidden = $('input[name="schedule"]:checked').value !== 'later';
+      setCardHidden('schedule-later-field', $('input[name="schedule"]:checked').value !== 'later');
     })
   );
 
