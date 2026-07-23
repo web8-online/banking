@@ -1,39 +1,36 @@
 /* =============================================================
    MERIDIAN — Send money page
-   Script: pages/transfer.js
+   Script: pages/transfer.js   (REDESIGN)
    Loaded as a module by transfer.html only. Handles:
-     1. Auth guard + shared app-header bits (same pattern as
-        accounts.js: avatar initial, name, notification badge,
-        user menu, log out)
+     1. Auth guard + shared app-header bits (avatar initial, name,
+        notification badge, user menu, log out) — unchanged from
+        the previous version.
      2. A 5-step wizard: Recipient -> Details -> Review -> Verify
-        -> Done
-     3. Recipient step: a single account-number/IBAN field that
-        auto-verifies via findRecipient() and shows a full
-        verification card (name, bank, masked account, country,
-        status) or a not-found state with manual fallback fields.
-        Saved beneficiaries + a "recent" one-tap strip live in a
-        collapsed secondary section so the primary flow only ever
-        asks for one thing at a time.
-     4. Details step: a from-account picker, live currency
-        conversion via getExchangeRate(), a live fee/balance
-        summary that updates as you type, transfer type, purpose,
-        and optional scheduling.
-     5. Review step: a read-only summary — edits happen by going
-        back to the relevant step, never inline here.
-     6. Verify step: since no OTP/2FA delivery exists yet (that's
-        pending the admin dashboard), this re-confirms identity by
-        checking the signed-in user's password via
-        verifyCurrentPassword(). Locks after repeated failures.
-        Swap this step over to real OTP once that's ready — see
-        the TODO by handleConfirmSend().
-     7. Send: addBeneficiary() (if the recipient is new and the
-        user opted to save them) + createTransfer(), then a
-        success screen with the real reference number.
+        -> Done. Same steps and same Supabase calls as before; only
+        the DOM hooks changed (.send-panel / .send-rail-step instead
+        of the old .wizard-panel / .wizard-step).
+     3. Recipient step: single account-number/IBAN field that
+        auto-verifies via findRecipient() and reveals a recipient
+        profile card, or a not-found state with manual fallback
+        fields. Saved beneficiaries + a "recent" strip live in a
+        collapsed secondary section.
+     4. Details step: from-account picker, live currency conversion
+        via getExchangeRate(), transfer type, purpose, optional
+        scheduling.
+     5. Review step: read-only summary — edits happen by going back
+        to the relevant step.
+     6. Verify step: re-confirms identity via verifyCurrentPassword()
+        (no OTP delivery exists yet — swap this out once it does,
+        see the TODO by handleConfirmSend()). Locks after repeated
+        failures.
+     7. Send: addBeneficiary() (if the recipient is new and the user
+        opted to save them) + createTransfer(), then the success step.
 
-     Throughout steps 2-4, a small floating card (mirrors the
-     marketing homepage's floating balance-card motif) keeps the
-     recipient + amount visible so the transfer never feels
-     abstract — see #transfer-preview-float.
+     NEW: a single "Ledger" panel (#ledger) is now the one source of
+     truth for recipient + amounts + fees, visible and updating live
+     from step 1 through the success screen, instead of a separate
+     floating preview + a separate fee panel + a separate review page
+     all repeating the same numbers.
    ============================================================= */
 
 import { signOutUser } from '../supabase/auth.js';
@@ -58,9 +55,31 @@ const CURRENCY_SYMBOLS = {
 };
 const RECENT_RECIPIENTS_KEY = 'meridian_recent_recipients';
 const TOTAL_STEPS = 5;
-const STEP_LABELS = ['Recipient', 'Details', 'Review', 'Verify', 'Done'];
 const MAX_AUTH_ATTEMPTS = 5;
 const AUTH_LOCKOUT_MS = 60000;
+
+const HERO_COPY = {
+  1: {
+    title: "Where's this going?",
+    sub: "Enter an account number, IBAN, or Meridian tag and we'll verify the recipient automatically — at the mid-market rate, with every fee shown up front.",
+  },
+  2: {
+    title: 'How much are you sending?',
+    sub: 'Check the numbers on the right as you type — nothing here is a surprise later.',
+  },
+  3: {
+    title: 'Review your transfer',
+    sub: "Take a good look. You can still change anything before you confirm.",
+  },
+  4: {
+    title: "Confirm it's you",
+    sub: 'One last check before the money moves.',
+  },
+  5: {
+    title: 'Transfer sent',
+    sub: 'Your ledger entry is complete — track it anytime from your transaction history.',
+  },
+};
 
 function currencySymbol(code) {
   return CURRENCY_SYMBOLS[code] || code || '';
@@ -88,7 +107,7 @@ let authFailedAttempts = 0;
 let authLockedUntil = 0;
 
 /* -----------------------------------------------------------
-   Toasts (same pattern as accounts.js)
+   Toasts
    ----------------------------------------------------------- */
 function showToast(message, variant = 'success') {
   const stack = $('#toast-stack');
@@ -187,64 +206,92 @@ function initLogout() {
    ----------------------------------------------------------- */
 function goToStep(n) {
   currentStep = n;
-  $$('.wizard-panel').forEach((panel) => panel.classList.toggle('is-active', Number(panel.dataset.panel) === n));
-  $$('.wizard-step').forEach((step) => {
+  $$('.send-panel').forEach((panel) => panel.classList.toggle('is-active', Number(panel.dataset.panel) === n));
+  $$('.send-rail-step').forEach((step) => {
     const stepNum = Number(step.dataset.step);
     step.classList.toggle('is-active', stepNum === n);
     step.classList.toggle('is-complete', stepNum < n);
   });
 
-  const fill = $('#wizard-progress-fill');
+  const fill = $('#send-rail-fill');
   if (fill) fill.style.width = `${((n - 1) / (TOTAL_STEPS - 1)) * 100}%`;
 
-  if (n === 2) {
-    recalcConversion();
-    updateStep2Header();
+  const copy = HERO_COPY[n];
+  const titleEl = $('#send-hero-title');
+  const subEl = $('#send-hero-sub');
+  if (copy && titleEl && subEl) {
+    titleEl.style.opacity = '0';
+    subEl.style.opacity = '0';
+    setTimeout(() => {
+      titleEl.textContent = copy.title;
+      subEl.textContent = n === 2 ? `Sending to ${getRecipientSummary().name || 'your recipient'} — check the numbers as you type.` : copy.sub;
+      titleEl.style.opacity = '1';
+      subEl.style.opacity = '1';
+    }, 120);
   }
-  if (n === 3 || n === 4) populateReviewAndVerify();
 
-  updatePreviewFloat();
+  if (n === 2) recalcConversion();
+  if (n === 3 || n === 4) populateReview();
 
-  const card = $('.transfer-card');
-  if (card) window.scrollTo({ top: card.getBoundingClientRect().top + window.scrollY - 90, behavior: 'smooth' });
+  updateLedger();
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function wireRadioGroup(name) {
-  const radios = $$(`input[name="${name}"]`);
-  radios.forEach((radio) => {
-    radio.addEventListener('change', () => {
-      radios.forEach((r) => r.closest('.auth-method-btn')?.classList.toggle('is-selected', r.checked));
+function wireSegmented(name) {
+  const inputs = $$(`input[name="${name}"]`);
+  inputs.forEach((input) => {
+    input.addEventListener('change', () => {
+      inputs.forEach((i) => i.closest('.send-segmented-btn')?.classList.toggle('is-selected', i.checked));
     });
   });
 }
 
 /* -----------------------------------------------------------
-   Floating live-preview card
+   The Ledger — single live summary, updates from step 1 to 5
    ----------------------------------------------------------- */
-function updatePreviewFloat() {
-  const floatEl = $('#transfer-preview-float');
-  if (!floatEl) return;
-
-  const show = currentStep >= 2 && currentStep <= 4;
-  if (!show) {
-    floatEl.classList.remove('is-visible');
-    floatEl.hidden = true;
-    return;
-  }
-
-  floatEl.hidden = false;
-  requestAnimationFrame(() => floatEl.classList.add('is-visible'));
+function updateLedger() {
+  const ledger = $('#ledger');
+  if (!ledger) return;
 
   const recipient = getRecipientSummary();
+  const hasRecipient = Boolean(recipient.name);
+
+  $('#ledger-avatar').textContent = hasRecipient ? recipient.name.trim().charAt(0).toUpperCase() : '·';
+  $('#ledger-name').textContent = hasRecipient ? recipient.name : 'Add a recipient';
+  $('#ledger-meta').textContent = hasRecipient ? (recipient.meta || '\u2014') : 'Their details will appear here';
+  $('#ledger-seal').classList.toggle('is-visible', hasRecipient && !recipient.isNew);
+
   const fromAccount = currentFromAccount();
   const sendAmount = Number($('#transfer-send-amount')?.value) || 0;
+  const toCurrency = $('#transfer-receive-currency')?.value || 'USD';
+  const receiveAmount = Number($('#transfer-receive-amount')?.value) || 0;
 
-  $('#preview-avatar').textContent = (recipient.name || '?').trim().charAt(0).toUpperCase() || '?';
-  $('#preview-name').textContent = recipient.name || 'Recipient';
-  $('#preview-meta').textContent = recipient.meta || '\u2014';
-  $('#preview-amount').textContent = fromAccount
-    ? `${currencySymbol(fromAccount.currency)}${formatAmount(sendAmount)}`
-    : formatAmount(sendAmount);
+  $('#ledger-send-amount').textContent = fromAccount ? `${currencySymbol(fromAccount.currency)}${formatAmount(sendAmount)}` : formatAmount(sendAmount);
+  $('#ledger-receive-amount').textContent = `${currencySymbol(toCurrency)}${formatAmount(receiveAmount)}`;
+
+  $('#ledger-rate').textContent = $('#fee-rate-note-value')?.textContent || '—';
+  $('#ledger-fee').textContent = $('#fee-amount-value')?.textContent || '—';
+  $('#ledger-arrives').textContent = $('#fee-arrives-value')?.textContent || '—';
+  $('#ledger-available').textContent = $('#fee-available-value')?.textContent || '—';
+  $('#ledger-remaining').textContent = $('#fee-remaining-value')?.textContent || '—';
+  $('#ledger-total').textContent = $('#fee-total-value')?.textContent || '—';
+
+  const eyebrow = $('#ledger-eyebrow');
+  const footText = $('#ledger-foot-text');
+  const stamp = $('#ledger-stamp');
+
+  if (currentStep === 5) {
+    eyebrow.textContent = 'Transfer receipt';
+    footText.textContent = 'Completed transfer';
+    ledger.classList.add('is-complete');
+    stamp.classList.add('is-visible');
+  } else {
+    eyebrow.textContent = 'Transfer ledger';
+    footText.textContent = 'Verified before every send';
+    ledger.classList.remove('is-complete');
+    stamp.classList.remove('is-visible');
+  }
 }
 
 /* -----------------------------------------------------------
@@ -271,8 +318,8 @@ function renderBeneficiaryList(filterText = '') {
 
   if (!beneficiaries.length) {
     container.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-icon">
+      <div class="send-empty">
+        <div class="send-empty-icon">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M4.5 19.5c0-3.6 3.4-6 7.5-6s7.5 2.4 7.5 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
         </div>
         <h3>No saved beneficiaries yet</h3>
@@ -320,6 +367,7 @@ function renderBeneficiaryList(filterText = '') {
       $$('.beneficiary-card', container).forEach((c) => c.classList.toggle('is-selected', c === card));
       pushRecentRecipient(selectedBeneficiary);
       updateStep1ContinueState();
+      updateLedger();
     });
   });
 }
@@ -366,7 +414,7 @@ function renderRecentStrip() {
   strip.innerHTML = matches
     .map(
       (b) => `
-    <button type="button" class="recipient-quick-chip" data-recent-id="${b.id}" title="${escapeHtml(b.beneficiary_name)}">
+    <button type="button" class="send-quick-chip" data-recent-id="${b.id}" title="${escapeHtml(b.beneficiary_name)}">
       <span class="avatar-initial">${beneficiaryInitial(b)}</span>
       <span>${escapeHtml((b.beneficiary_name || '').split(' ')[0] || '—')}</span>
     </button>
@@ -374,7 +422,7 @@ function renderRecentStrip() {
     )
     .join('');
 
-  $$('.recipient-quick-chip', strip).forEach((chip) => {
+  $$('.send-quick-chip', strip).forEach((chip) => {
     chip.addEventListener('click', () => {
       const b = beneficiaries.find((x) => String(x.id) === chip.dataset.recentId);
       if (!b) return;
@@ -385,6 +433,7 @@ function renderRecentStrip() {
       renderBeneficiaryList('');
       pushRecentRecipient(b);
       updateStep1ContinueState();
+      updateLedger();
     });
   });
 }
@@ -419,6 +468,7 @@ function handleIdentifierInput(event) {
   selectedBeneficiary = null;
   renderBeneficiaryList($('#beneficiary-search')?.value || '');
   updateStep1ContinueState();
+  updateLedger();
 
   if (!value.trim()) return;
 
@@ -456,6 +506,7 @@ function handleIdentifierInput(event) {
       $('#new-beneficiary-account').value = value;
     }
     updateStep1ContinueState();
+    updateLedger();
   }, 550);
 }
 
@@ -474,8 +525,8 @@ function updateStep1ContinueState() {
 
 /** A single normalized view of "who are we sending to", regardless
  *  of which of the three recipient paths (saved / internal-verified
- *  / manual) produced it. Read by the details, review, verify, and
- *  send steps. */
+ *  / manual) produced it. Read by the ledger, details, review,
+ *  verify, and send steps. */
 function getRecipientSummary() {
   if (selectedBeneficiary) {
     return {
@@ -500,27 +551,25 @@ function getRecipientSummary() {
       isInternal: true,
     };
   }
+  const nameVal = $('#new-beneficiary-name')?.value.trim();
+  if (!nameVal && !$('#new-beneficiary-bank')?.value.trim()) {
+    return { name: '', meta: '', currency: null, beneficiaryId: null, isNew: true };
+  }
   const countrySelect = $('#new-beneficiary-country');
   return {
-    name: $('#new-beneficiary-name').value.trim(),
+    name: nameVal,
     meta: [$('#new-beneficiary-bank').value.trim(), countrySelect.options[countrySelect.selectedIndex]?.textContent].filter(Boolean).join(' · '),
     currency: null,
     beneficiaryId: null,
     isNew: true,
     manual: {
-      beneficiaryName: $('#new-beneficiary-name').value.trim(),
+      beneficiaryName: nameVal,
       bankName: $('#new-beneficiary-bank').value.trim(),
       accountNumber: $('#new-beneficiary-account').value.trim(),
       swiftCode: $('#new-beneficiary-swift').value.trim(),
       country: countrySelect.value,
     },
   };
-}
-
-function updateStep2Header() {
-  const recipient = getRecipientSummary();
-  const el = $('[data-review="beneficiary_inline"]');
-  if (el) el.textContent = recipient.name || 'your recipient';
 }
 
 /* -----------------------------------------------------------
@@ -544,19 +593,19 @@ function renderFromAccountStrip() {
     .map((a) => {
       const selected = String(a.id) === String(selectedFromAccountId);
       return `
-      <button type="button" class="account-strip-item" data-account-id="${a.id}"
+      <button type="button" class="send-account-pill" data-account-id="${a.id}"
               role="radio" aria-checked="${selected}">
-        <span class="account-strip-flag">${currencySymbol(a.currency)}</span>
-        <div>
+        <span class="send-account-pill-flag">${currencySymbol(a.currency)}</span>
+        <span class="send-account-pill-text">
           <strong>${a.currency} account</strong>
           <span>${formatAmount(a.available_balance ?? a.balance)}</span>
-        </div>
+        </span>
       </button>
     `;
     })
     .join('');
 
-  $$('.account-strip-item[data-account-id]', strip).forEach((btn) => {
+  $$('.send-account-pill[data-account-id]', strip).forEach((btn) => {
     btn.addEventListener('click', () => {
       selectedFromAccountId = btn.dataset.accountId;
       renderFromAccountStrip();
@@ -573,14 +622,32 @@ function renderFromAccountStrip() {
    shape (mirroring how real transfer pricing tends to look)
    rather than a fabricated "real" number. Swap this for a lookup
    against a proper fee schedule (keyed by currency pair + speed)
-   once one exists.
+   once one exists. The computed values are cached in a few hidden
+   spans (#fee-*-value) so the ledger can read the same numbers
+   without recomputing them.
    ----------------------------------------------------------- */
 function computeFee(amount, speed) {
   const amt = Math.max(0, Number(amount) || 0);
   return speed === 'instant' ? Math.max(2.5, +(amt * 0.012).toFixed(2)) : Math.max(1, +(amt * 0.0021).toFixed(2));
 }
 
+function ensureFeeCache() {
+  if ($('#fee-rate-note-value')) return;
+  const cache = document.createElement('div');
+  cache.hidden = true;
+  cache.innerHTML = `
+    <span id="fee-rate-note-value"></span>
+    <span id="fee-amount-value"></span>
+    <span id="fee-available-value"></span>
+    <span id="fee-total-value"></span>
+    <span id="fee-remaining-value"></span>
+    <span id="fee-arrives-value"></span>
+  `;
+  document.body.appendChild(cache);
+}
+
 async function recalcConversion() {
+  ensureFeeCache();
   const fromAccount = currentFromAccount();
   const fromCurrency = fromAccount?.currency || 'USD';
   $('#transfer-send-currency-tag').textContent = fromCurrency;
@@ -605,15 +672,16 @@ async function recalcConversion() {
   const receiveAmount = sendAmount * rate;
 
   $('#transfer-receive-amount').value = receiveAmount.toFixed(2);
-  $('#fee-rate-note').textContent = `1 ${fromCurrency} = ${rate.toFixed(4)} ${toCurrency}${isFallback ? ' · indicative' : ' · mid-market'}`;
-  $('#fee-amount').textContent = `${currencySymbol(fromCurrency)}${formatAmount(fee)}`;
-  $('#fee-total').textContent = `${currencySymbol(fromCurrency)}${formatAmount(sendAmount + fee)}`;
-  $('#fee-arrives').textContent = speed === 'instant' ? 'Within minutes' : 'Within a few hours';
+
+  $('#fee-rate-note-value').textContent = `1 ${fromCurrency} = ${rate.toFixed(4)} ${toCurrency}${isFallback ? ' · indicative' : ' · mid-market'}`;
+  $('#fee-amount-value').textContent = `${currencySymbol(fromCurrency)}${formatAmount(fee)}`;
+  $('#fee-total-value').textContent = `${currencySymbol(fromCurrency)}${formatAmount(sendAmount + fee)}`;
+  $('#fee-arrives-value').textContent = speed === 'instant' ? 'Within minutes' : 'Within a few hours';
 
   const available = Number(fromAccount?.available_balance ?? fromAccount?.balance ?? 0);
   const total = sendAmount + fee;
-  $('#fee-available').textContent = fromAccount ? `${currencySymbol(fromCurrency)}${formatAmount(available)}` : '—';
-  $('#fee-remaining').textContent = fromAccount ? `${currencySymbol(fromCurrency)}${formatAmount(Math.max(0, available - total))}` : '—';
+  $('#fee-available-value').textContent = fromAccount ? `${currencySymbol(fromCurrency)}${formatAmount(available)}` : '—';
+  $('#fee-remaining-value').textContent = fromAccount ? `${currencySymbol(fromCurrency)}${formatAmount(Math.max(0, available - total))}` : '—';
 
   const noteEl = $('#balance-note');
   if (fromAccount && total > available) {
@@ -626,7 +694,7 @@ async function recalcConversion() {
     noteEl.textContent = '';
   }
 
-  updatePreviewFloat();
+  updateLedger();
 
   return { fromAccount, fromCurrency, toCurrency, sendAmount, fee, rate, receiveAmount, speed, total, available };
 }
@@ -658,7 +726,7 @@ function formatScheduledDate() {
   return new Date(val).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
-async function populateReviewAndVerify() {
+async function populateReview() {
   const recipient = getRecipientSummary();
   const fromAccount = currentFromAccount();
   const sendAmount = Number($('#transfer-send-amount').value) || 0;
@@ -833,8 +901,8 @@ function resetWizard() {
   $('#auth-password-error').textContent = '';
   authFailedAttempts = 0;
   authLockedUntil = 0;
-  $$('input[name="speed"]').forEach((r) => r.closest('.auth-method-btn')?.classList.toggle('is-selected', r.checked));
-  $$('input[name="schedule"]').forEach((r) => r.closest('.auth-method-btn')?.classList.toggle('is-selected', r.checked));
+  $$('input[name="speed"]').forEach((r) => r.closest('.send-segmented-btn')?.classList.toggle('is-selected', r.checked));
+  $$('input[name="schedule"]').forEach((r) => r.closest('.send-segmented-btn')?.classList.toggle('is-selected', r.checked));
   $('#schedule-later-field').hidden = true;
   renderBeneficiaryList('');
   renderRecentStrip();
@@ -864,7 +932,7 @@ function applyQueryParams() {
 }
 
 /* -----------------------------------------------------------
-   Password visibility toggle (matches profile.html's pattern)
+   Password visibility toggle
    ----------------------------------------------------------- */
 function initPasswordToggle() {
   const toggle = $('#auth-password-toggle');
@@ -889,8 +957,8 @@ function initPasswordToggle() {
   initUserMenu();
   initLogout();
   initPasswordToggle();
-  wireRadioGroup('speed');
-  wireRadioGroup('schedule');
+  wireSegmented('speed');
+  wireSegmented('schedule');
 
   // Safety net: every button in this form is type="button" on
   // purpose (the wizard advances via JS, never a real submit), but
@@ -906,12 +974,16 @@ function initPasswordToggle() {
     $('#recipient-identifier').value = '';
     $('#recipient-identifier').focus();
     updateStep1ContinueState();
+    updateLedger();
   });
   $$('#recipient-manual-fields input, #recipient-manual-fields select').forEach((el) =>
-    el.addEventListener('input', updateStep1ContinueState)
+    el.addEventListener('input', () => {
+      updateStep1ContinueState();
+      updateLedger();
+    })
   );
 
-  $$('.wizard-next').forEach((btn) => {
+  $$('.send-next').forEach((btn) => {
     btn.addEventListener('click', async () => {
       if (currentStep === 2) {
         const ok = await validateStep2();
@@ -920,7 +992,7 @@ function initPasswordToggle() {
       goToStep(Number(btn.dataset.goto));
     });
   });
-  $$('.wizard-back, .wizard-edit-link[data-goto]').forEach((btn) => {
+  $$('.send-back, .send-edit-link[data-goto]').forEach((btn) => {
     btn.addEventListener('click', () => goToStep(Number(btn.dataset.goto)));
   });
 
@@ -958,6 +1030,7 @@ function initPasswordToggle() {
   renderBeneficiaryList('');
   renderRecentStrip();
   updateStep1ContinueState();
+  updateLedger();
 
   if (!accounts.length) {
     showToast('Open a currency account before you can send money.', 'error');
