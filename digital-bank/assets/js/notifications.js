@@ -9,38 +9,21 @@
         drops transient messages into it. Works on any page, no
         Supabase needed.
 
-     2. The header notification bell — this now drives the REAL
-        markup already shipped in components/app-navbar.html
-        ([data-notification-bell] and its children), instead of
-        building a second dropdown from scratch. It pulls unread
+     2. The header notification bell — drives the REAL markup
+        already shipped in components/app-navbar.html
+        ([data-notification-bell] and its children). It pulls unread
         count + recent notifications from the `notifications` table
         via supabase/database.js, and subscribes to Supabase Realtime
         so a new notification appears without a refresh.
 
      import { toastSuccess, toastError, initNotificationCenter } from '../assets/js/notifications.js';
 
-   FIXES vs the previous version of this file:
-     - No longer builds a duplicate dropdown and appends it INSIDE
-       the bell <button> (invalid markup, visually clipped). It now
-       finds and drives the dropdown that's already a sibling of the
-       button in app-navbar.html via data-notification-* attributes.
-     - resolveSupabaseBase() now returns a fixed relative path
-       instead of branching on the current page's URL. It's used
-       only for dynamic import() calls below, and import() specifiers
-       resolve relative to THIS FILE's own location — not the page
-       that's currently loaded. This file always lives at
-       /assets/js/notifications.js (two directories deep from the
-       project root: assets/, then js/), so it always needs exactly
-       '../../' to reach the root-level supabase/ folder, regardless
-       of which page (root-level or under /pages/) triggered the
-       import. (Compare with resolveComponentsBase() in
-       components.js, which correctly DOES branch on the page URL —
-       but that one uses fetch(), which resolves against the page,
-       not the importing file.)
-     - Dynamic imports and every Supabase call are now wrapped in
-       try/catch. A failure shows the existing error state (with the
-       Try again button already in the markup) instead of throwing
-       silently and leaving the bell dead with no console clue.
+   NOTE on relative paths: this file always lives at
+   /assets/js/notifications.js — two directories deep from the
+   project root — so its dynamic import() calls always need '../../'
+   to reach root-level supabase/, regardless of which page (root or
+   under /pages/) triggered the import. import() resolves relative
+   to THIS file's own location, not the current page's URL.
    ============================================================= */
 
 import { $, $$, formatTimestamp } from './utils.js';
@@ -67,10 +50,6 @@ function getOrCreateToastStack() {
   return stack;
 }
 
-/**
- * Shows a toast. `type` is 'success' | 'error' | 'info'.
- * Auto-dismisses after `duration` ms (0 disables auto-dismiss).
- */
 export function showToast({ type = 'info', title, message, duration = 5000 } = {}) {
   const stack = getOrCreateToastStack();
 
@@ -91,7 +70,6 @@ export function showToast({ type = 'info', title, message, duration = 5000 } = {
   $('.toast-body span', toast).textContent = message || '';
 
   stack.appendChild(toast);
-  // Force layout before adding the visible class so the transition actually runs.
   requestAnimationFrame(() => toast.classList.add('is-visible'));
 
   let dismissTimer;
@@ -99,7 +77,6 @@ export function showToast({ type = 'info', title, message, duration = 5000 } = {
     clearTimeout(dismissTimer);
     toast.classList.remove('is-visible');
     toast.addEventListener('transitionend', () => toast.remove(), { once: true });
-    // Fallback in case the transition never fires (e.g. reduced motion strips it).
     setTimeout(() => toast.remove(), 400);
   };
 
@@ -117,15 +94,6 @@ export const toastInfo = (message, title) => showToast({ type: 'info', title, me
    Header notification bell — logged-in app pages only
    ----------------------------------------------------------- */
 
-/**
- * Used only for dynamic import() below. import() specifiers resolve
- * relative to THIS file's own location, not the current page's URL.
- * This file always lives at /assets/js/notifications.js — two
- * directories deep from the project root — so it always needs
- * exactly '../../' to reach root-level supabase/, regardless of
- * which page triggered the import. Do NOT branch this on
- * window.location.pathname.
- */
 function resolveSupabaseBase() {
   return '../../supabase/';
 }
@@ -142,11 +110,6 @@ function loadConfigModule() {
   return configModulePromise;
 }
 
-/**
- * Grabs every element the navbar markup already defines for the
- * bell/dropdown. Returns null if the bell isn't on this page (some
- * pages may not render the navbar at all), so callers can no-op.
- */
 function getBellElements() {
   const wrap = document.querySelector('[data-notification-bell]');
   if (!wrap) return null;
@@ -170,12 +133,22 @@ function getBellElements() {
   };
 }
 
+/**
+ * Toggles both the `hidden` attribute AND inline `style.display`.
+ * notifications.css gives `.notification-state--loading` an explicit
+ * `display: flex`, which beats the browser's default
+ * `[hidden] { display: none }` rule on its own — so `hidden` alone
+ * doesn't actually hide it once another state is shown. Setting
+ * `style.display` directly closes that gap.
+ */
 function showBodyState(els, state) {
-  // state is one of: 'loading' | 'list' | 'empty' | 'error'
-  if (els.loading) els.loading.hidden = state !== 'loading';
-  if (els.list) els.list.hidden = state !== 'list';
-  if (els.empty) els.empty.hidden = state !== 'empty';
-  if (els.error) els.error.hidden = state !== 'error';
+  const targets = { loading: els.loading, list: els.list, empty: els.empty, error: els.error };
+  Object.entries(targets).forEach(([key, el]) => {
+    if (!el) return;
+    const show = key === state;
+    el.hidden = !show;
+    el.style.display = show ? '' : 'none';
+  });
 }
 
 function renderNotificationRow(notification) {
@@ -204,10 +177,6 @@ function setBadgeCount(badge, count) {
 function openDropdown(els) {
   els.dropdown.setAttribute('aria-hidden', 'false');
   els.toggle.setAttribute('aria-expanded', 'true');
-  // notifications.css shows/hides this element via the .is-open
-  // class (opacity/visibility/transform) — it has no display:none
-  // in its base rule, so toggling inline `style.display` alone has
-  // no visible effect. Toggle the class the CSS actually keys off.
   els.dropdown.classList.add('is-open');
 }
 
@@ -221,18 +190,10 @@ function isDropdownOpen(els) {
   return els.dropdown.classList.contains('is-open');
 }
 
-/**
- * Wires the bell icon in the app header: click to toggle the
- * dropdown that's already in app-navbar.html, badge shows unread
- * count, realtime subscription surfaces new ones as a toast + badge
- * bump without a page reload. No-ops quietly if the page has no
- * bell markup (e.g. a page that doesn't render the navbar).
- */
 export async function initNotificationCenter(userId) {
   const els = getBellElements();
   if (!els) return;
 
-  // Start closed regardless of markup default.
   closeDropdown(els);
 
   let db;
@@ -253,7 +214,6 @@ export async function initNotificationCenter(userId) {
       setBadgeCount(els.badge, count);
     } catch (err) {
       console.error('Notifications: failed to refresh unread count', err);
-      // Don't blow up the badge over this — just leave it as-is.
     }
   }
 
@@ -333,20 +293,10 @@ export async function initNotificationCenter(userId) {
       if (isDropdownOpen(els)) renderList();
     });
   } catch (err) {
-    // Realtime is a nice-to-have, not a hard requirement — don't
-    // break the rest of the bell (click-to-open, badge, mark-read)
-    // just because the subscription failed (e.g. replication isn't
-    // enabled on the notifications table yet).
     console.error('Notifications: realtime subscription failed', err);
   }
 }
 
-/**
- * Subscribes to INSERTs on the notifications table for one user via
- * Supabase Realtime. Requires the `notifications` table to have
- * realtime replication enabled in the Supabase dashboard. Returns an
- * unsubscribe function.
- */
 export async function subscribeToNewNotifications(userId, onInsert) {
   const { supabase } = await loadConfigModule();
 
