@@ -5,6 +5,16 @@
           auth, or app). Load AFTER style.css, since these rules
           depend on the design tokens defined there.
 
+   This file is now the SINGLE OWNER of every shared primitive
+   (toasts, status pills, tags, amounts, skeletons, empty states).
+   dashboard.css no longer redeclares any of these — it previously
+   did, and because load order is style.css -> dashboard.css ->
+   components.css -> notifications.css, components.css's version
+   silently won on every page that loaded both, while pages that
+   only loaded dashboard.css (like investments.html) got a
+   different, out-of-sync version. If you add a new shared widget,
+   it goes here, not in dashboard.css.
+
    Contents:
      1.  Back-to-top button
      2.  Chat support widget
@@ -787,7 +797,14 @@ html.a11y-reduce-motion *::after {
   color: var(--amber);
 }
 
-.status-pill--danger {
+/* Two names for the same "red/danger" state exist across the
+   codebase's JS (some build `status-pill--danger`, some build
+   `status-pill--blocked`) — both are aliased to the same styling
+   here so neither renders unstyled depending on which page's JS
+   used which name. Standardizing the JS on one name is a good
+   follow-up, but this keeps both working in the meantime. */
+.status-pill--danger,
+.status-pill--blocked {
   background: var(--red-bg);
   color: var(--red);
 }
@@ -876,6 +893,14 @@ html.a11y-reduce-motion *::after {
 
 /* -------------------------------------------------------------
    6. Toast notifications
+   -----------------------------------------------------------
+   CANONICAL toast implementation for the whole app. Positioned
+   top-right, hidden via opacity until the JS that creates a toast
+   adds `.is-visible` — see notifications.js's showToast() for the
+   reference implementation every page's toast helper should match.
+   If a page's JS never adds `.is-visible`, its toasts will silently
+   never appear (opacity stays 0) — that's a JS bug to fix in that
+   page's script, not something to work around in this CSS.
    ------------------------------------------------------------- */
 .toast-stack {
   position: fixed;
@@ -1019,6 +1044,12 @@ html.a11y-reduce-motion *::after {
   width: 38px;
   height: 38px;
   border-radius: 50%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after {
+    animation: none;
+  }
 }
 
 /* -------------------------------------------------------------
