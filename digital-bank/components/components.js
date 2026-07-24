@@ -21,13 +21,15 @@
    a `component:loaded` event so other modules (auth-ui.js) can hook
    in once the real DOM exists.
 
-   Once app-navbar has been injected, bootNotificationCenter() below
-   looks up the signed-in user via supabase/auth.js and wires the
-   bell up for real — no page-specific script needed.
+   As of the Notification Center integration, loading the
+   `app-navbar` partial also auto-boots the bell dropdown
+   (assets/js/notifications.js) once its markup is in the DOM —
+   pages using <div data-component="app-navbar"></div> don't need
+   to call initNotificationCenter() themselves.
    ============================================================= */
 
 /* -----------------------------------------------------------
-   1. Manifest — which placeholder loads which partial.
+   Manifest — which placeholder loads which partial.
    Paths are relative to the page importing this module, so pages
    under /pages/ and the root index.html both resolve correctly
    because each page's own <script> passes its own base if needed.
@@ -41,8 +43,6 @@ const COMPONENT_MAP = {
 /**
  * Resolves the components/ directory relative to the current page,
  * so this one file works whether it's imported from / or /pages/.
- * This is used with fetch(), which resolves against the *page's*
- * URL — so branching on the current page's path is correct here.
  */
 function resolveComponentsBase() {
   const path = window.location.pathname;
@@ -51,23 +51,15 @@ function resolveComponentsBase() {
 }
 
 /**
- * Resolves the supabase/ directory — used only by
- * bootNotificationCenter() below to reach supabase/auth.js via a
- * dynamic import().
- *
- * IMPORTANT: dynamic import() specifiers resolve relative to the
- * location of the file containing the import statement — NOT
- * relative to the current page's URL. This file always lives at
- * /components/components.js (one directory deep from the project
- * root), so it always needs exactly one '../' to reach root-level
- * supabase/, no matter which page triggered the import. Unlike
- * resolveComponentsBase() above (which uses fetch() and therefore
- * correctly depends on the page's URL), this must NOT branch on
- * window.location.pathname.
+ * Fixed paths for the dynamic import() calls in bootNotificationCenter()
+ * below. Unlike resolveComponentsBase() (which uses fetch(), resolved
+ * against the current page), import() specifiers resolve relative to
+ * THIS file's own location — components/components.js — regardless
+ * of which page (root-level or under /pages/) triggered the import.
+ * Do NOT branch these on window.location.pathname.
  */
-function resolveSupabaseBase() {
-  return '../supabase/';
-}
+const ASSETS_JS_BASE = '../assets/js/';
+const SUPABASE_BASE = '../supabase/';
 
 /**
  * Fetches a single partial and injects it into the matching
@@ -120,31 +112,23 @@ function markActiveNavLink() {
 }
 
 /**
- * If app-navbar was one of the components just injected, look up the
- * signed-in user and boot the notification bell against it. Silently
- * does nothing on pages that don't render app-navbar (marketing
- * pages), and logs — rather than throws — if auth or notifications
- * fail to load, so a broken bell never takes the rest of the page
- * down with it.
+ * Boots the notification bell once the app-navbar partial (which
+ * carries the [data-notification-bell] markup) has been injected.
+ * initNotificationCenter(userId) needs the signed-in user's id, so
+ * this resolves the current session via auth.js first. Silently
+ * does nothing on pages that didn't load app-navbar, and silently
+ * does nothing if there's no active session (a page that renders
+ * app-navbar is assumed to already be behind requireAuth()).
  */
 async function bootNotificationCenter(loadedNames) {
   if (!loadedNames.includes('app-navbar')) return;
-
   try {
-    const supabaseBase = resolveSupabaseBase();
-    const { getCurrentUser } = await import(`${supabaseBase}auth.js`);
-
-    const { data: user, error } = await getCurrentUser();
-    if (error || !user?.id) {
-      console.warn('[Meridian] No signed-in user — notification bell left uninitialized.');
-      return;
-    }
-
-    // Same reasoning as resolveSupabaseBase() above: this is a
-    // dynamic import(), so it resolves relative to components.js's
-    // own fixed location (/components/), not the current page's URL.
-    const { initNotificationCenter } = await import('../assets/js/notifications.js');
-
+    const [{ getCurrentUser }, { initNotificationCenter }] = await Promise.all([
+      import(`${SUPABASE_BASE}auth.js`),
+      import(`${ASSETS_JS_BASE}notifications.js`),
+    ]);
+    const { data: user } = await getCurrentUser();
+    if (!user) return;
     await initNotificationCenter(user.id);
   } catch (err) {
     console.warn('[Meridian] Failed to initialize notification center:', err.message);
@@ -153,11 +137,9 @@ async function bootNotificationCenter(loadedNames) {
 
 /**
  * Finds every [data-component] placeholder on the page, loads its
- * partial, then marks the active nav link, boots the notification
- * bell (if app-navbar was among the loaded components), and
- * dispatches `component:loaded` on `document` once everything has
- * settled — auth-ui.js listens for this before touching header
- * elements.
+ * partial, then marks the active nav link and dispatches
+ * `component:loaded` on `document` once everything has settled —
+ * auth-ui.js listens for this before touching header elements.
  */
 export async function loadComponents() {
   const placeholders = Array.from(document.querySelectorAll('[data-component]'));
@@ -171,8 +153,8 @@ export async function loadComponents() {
   );
 
   markActiveNavLink();
-  await bootNotificationCenter(names);
   document.dispatchEvent(new CustomEvent('component:loaded'));
+  bootNotificationCenter(names);
 }
 
 /** Re-runs active-link detection — handy if a page changes hash/history without a full reload. */
