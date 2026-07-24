@@ -24,11 +24,19 @@
        the bell <button> (invalid markup, visually clipped). It now
        finds and drives the dropdown that's already a sibling of the
        button in app-navbar.html via data-notification-* attributes.
-     - resolveSupabaseBase() no longer guesses based on a `/pages/`
-       segment in the URL — this project has no pages/ directory;
-       every page lives at the project root alongside `supabase/`.
-       If you DO move pages into a subfolder later, update this one
-       function accordingly.
+     - resolveSupabaseBase() now returns a fixed relative path
+       instead of branching on the current page's URL. It's used
+       only for dynamic import() calls below, and import() specifiers
+       resolve relative to THIS FILE's own location — not the page
+       that's currently loaded. This file always lives at
+       /assets/js/notifications.js (two directories deep from the
+       project root: assets/, then js/), so it always needs exactly
+       '../../' to reach the root-level supabase/ folder, regardless
+       of which page (root-level or under /pages/) triggered the
+       import. (Compare with resolveComponentsBase() in
+       components.js, which correctly DOES branch on the page URL —
+       but that one uses fetch(), which resolves against the page,
+       not the importing file.)
      - Dynamic imports and every Supabase call are now wrapped in
        try/catch. A failure shows the existing error state (with the
        Try again button already in the markup) instead of throwing
@@ -110,13 +118,16 @@ export const toastInfo = (message, title) => showToast({ type: 'info', title, me
    ----------------------------------------------------------- */
 
 /**
- * Every page in this project lives at the project root, alongside
- * the `supabase/` folder — there is no `pages/` subdirectory, so the
- * path is always the same. If pages ever move into a subfolder, this
- * is the one place to update.
+ * Used only for dynamic import() below. import() specifiers resolve
+ * relative to THIS file's own location, not the current page's URL.
+ * This file always lives at /assets/js/notifications.js — two
+ * directories deep from the project root — so it always needs
+ * exactly '../../' to reach root-level supabase/, regardless of
+ * which page triggered the import. Do NOT branch this on
+ * window.location.pathname.
  */
 function resolveSupabaseBase() {
-  return 'supabase/';
+  return '../../supabase/';
 }
 
 let dbModulePromise = null;
