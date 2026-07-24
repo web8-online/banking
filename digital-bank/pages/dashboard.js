@@ -5,20 +5,36 @@
      1. Auth guard (via supabase/page-guard.js) + reveal
      2. Personalized greeting + real last-login line, both from
         the signed-in user's profile / login_sessions row
-     3. Notification badge count
-     4. User menu dropdown + mobile nav toggle
-     5. Log out
-     6. Total balance + account strip, built from real accounts
-     7. Recent transactions, spending breakdown, savings goals,
+     3. User menu dropdown + mobile nav toggle + log out
+        (header-dependent — see initHeaderDependentUI() below)
+     4. Total balance + account strip, built from real accounts
+     5. Recent transactions, spending breakdown, savings goals,
         and card preview — all scoped to the user's primary
         (first-opened) account. See the note above
         renderPrimaryAccountSections() for why.
-     8. Live crypto ticker (band under the header)
-     9. "Market pulse" panel — live crypto prices + finance
+     6. Live crypto ticker (band under the header)
+     7. "Market pulse" panel — live crypto prices + finance
         headlines, with an honestly-labelled fallback if either
         feed is unreachable (never fakes "live" data)
-    10. Automation showcase — animates a real stat (total saved
+     8. Automation showcase — animates a real stat (total saved
         across the user's goals) into the sidebar upsell card
+
+   HEADER NOTE:
+   dashboard.html no longer has a static <header> — it loads the
+   shared components/app-navbar.html partial via components.js
+   ( <div data-component="app-navbar"></div> + loadComponents() ).
+   That partial is injected asynchronously (fetch), and it's also
+   what wires up the real, working notification bell via
+   assets/js/notifications.js — no notification-badge code lives
+   in this file anymore.
+
+   Anything in this file that touches header markup (user name,
+   avatar, user-menu dropdown, mobile nav toggle, logout link)
+   MUST wait until that partial has actually landed in the DOM.
+   components.js dispatches a `component:loaded` event on
+   `document` once it's done — see initHeaderDependentUI() below,
+   which is the single place that waits for it and then runs all
+   four header-dependent pieces together.
    ============================================================= */
 
 import { guardPage } from '../supabase/page-guard.js';
@@ -26,7 +42,6 @@ import { signOutUser } from '../supabase/auth.js';
 import { supabase } from '../supabase/config.js';
 import {
   getMyProfile,
-  getUnreadNotificationCount,
   getMyAccounts,
   getTotalBalance,
   getTransactions,
@@ -119,7 +134,8 @@ function showToast(message, variant = 'error') {
 }
 
 /* -----------------------------------------------------------
-   Greeting + last login
+   Greeting + last login (not header-dependent — these elements
+   live in <main>, which is present immediately)
    ----------------------------------------------------------- */
 function timeOfDayGreeting() {
   const hour = new Date().getHours();
@@ -167,23 +183,8 @@ async function populateLastLogin(userId) {
 }
 
 /* -----------------------------------------------------------
-   Notification badge
-   ----------------------------------------------------------- */
-async function populateNotificationBadge() {
-  const badge = $('.app-icon-btn-badge');
-  if (!badge) return;
-
-  const { data: count } = await getUnreadNotificationCount();
-  if (!count) {
-    badge.style.display = 'none';
-    return;
-  }
-  badge.textContent = count > 9 ? '9+' : String(count);
-  badge.style.display = 'flex';
-}
-
-/* -----------------------------------------------------------
    Header: name, avatar
+   HEADER-DEPENDENT — only call after app-navbar has been injected.
    ----------------------------------------------------------- */
 async function populateHeaderIdentity() {
   const { data: profile } = await getMyProfile();
@@ -198,6 +199,7 @@ async function populateHeaderIdentity() {
 
 /* -----------------------------------------------------------
    User menu dropdown
+   HEADER-DEPENDENT — only call after app-navbar has been injected.
    ----------------------------------------------------------- */
 function initUserMenu() {
   const menu = $('.app-user-menu');
@@ -238,6 +240,7 @@ function initUserMenu() {
 
 /* -----------------------------------------------------------
    Mobile nav toggle
+   HEADER-DEPENDENT — only call after app-navbar has been injected.
    ----------------------------------------------------------- */
 function initMobileNav() {
   const toggle = $('.app-nav-toggle');
@@ -265,6 +268,7 @@ function initMobileNav() {
 
 /* -----------------------------------------------------------
    Log out
+   HEADER-DEPENDENT — only call after app-navbar has been injected.
    ----------------------------------------------------------- */
 function initLogout() {
   const logoutLink = $('#logout-link');
@@ -275,6 +279,37 @@ function initLogout() {
     await signOutUser();
     window.location.href = logoutLink.getAttribute('href');
   });
+}
+
+/**
+ * Runs every header-dependent piece (identity, user menu, mobile
+ * nav, logout) together, once app-navbar.html has actually been
+ * injected into the page by components.js.
+ *
+ * components.js fetches and injects the partial asynchronously, so
+ * this can't just run inline in init() — the elements above may not
+ * exist yet at that point. components.js dispatches `component:loaded`
+ * on `document` once every placeholder (including app-navbar) has
+ * been replaced with real markup, which is what this waits for.
+ *
+ * Also handles the (unlikely but possible) case where the partial
+ * somehow already landed before this listener was attached — e.g. a
+ * very fast cached fetch — by checking for the markup directly first
+ * instead of only relying on catching the event.
+ */
+function initHeaderDependentUI() {
+  const run = () => {
+    populateHeaderIdentity();
+    initUserMenu();
+    initMobileNav();
+    initLogout();
+  };
+
+  if (document.querySelector('.app-header')) {
+    run();
+  } else {
+    document.addEventListener('component:loaded', run, { once: true });
+  }
 }
 
 /* -----------------------------------------------------------
@@ -707,13 +742,10 @@ async function enhanceAutomationShowcase(accountId) {
   const user = await guardPage();
   if (!user) return; // guardPage() already redirected to login.html
 
+  initHeaderDependentUI();
+
   populateGreeting();
   populateLastLogin(user.id);
-  populateHeaderIdentity();
-  populateNotificationBadge();
-  initUserMenu();
-  initMobileNav();
-  initLogout();
   initDashboardTicker();
   initMarketNewsPanel();
 
