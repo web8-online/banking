@@ -41,6 +41,8 @@ const COMPONENT_MAP = {
 /**
  * Resolves the components/ directory relative to the current page,
  * so this one file works whether it's imported from / or /pages/.
+ * This is used with fetch(), which resolves against the *page's*
+ * URL — so branching on the current page's path is correct here.
  */
 function resolveComponentsBase() {
   const path = window.location.pathname;
@@ -49,15 +51,22 @@ function resolveComponentsBase() {
 }
 
 /**
- * Resolves the supabase/ directory the same way — used only by
- * bootNotificationCenter() below to reach supabase/auth.js. This
- * mirrors resolveComponentsBase() rather than reusing it, since it
- * needs a different relative prefix (supabase/ vs components/).
+ * Resolves the supabase/ directory — used only by
+ * bootNotificationCenter() below to reach supabase/auth.js via a
+ * dynamic import().
+ *
+ * IMPORTANT: dynamic import() specifiers resolve relative to the
+ * location of the file containing the import statement — NOT
+ * relative to the current page's URL. This file always lives at
+ * /components/components.js (one directory deep from the project
+ * root), so it always needs exactly one '../' to reach root-level
+ * supabase/, no matter which page triggered the import. Unlike
+ * resolveComponentsBase() above (which uses fetch() and therefore
+ * correctly depends on the page's URL), this must NOT branch on
+ * window.location.pathname.
  */
 function resolveSupabaseBase() {
-  const path = window.location.pathname;
-  const inPagesDir = path.includes('/pages/');
-  return inPagesDir ? '../supabase/' : 'supabase/';
+  return '../supabase/';
 }
 
 /**
@@ -131,9 +140,10 @@ async function bootNotificationCenter(loadedNames) {
       return;
     }
 
-    const inPagesDir = window.location.pathname.includes('/pages/');
-    const notificationsPath = inPagesDir ? '../assets/js/notifications.js' : 'assets/js/notifications.js';
-    const { initNotificationCenter } = await import(notificationsPath);
+    // Same reasoning as resolveSupabaseBase() above: this is a
+    // dynamic import(), so it resolves relative to components.js's
+    // own fixed location (/components/), not the current page's URL.
+    const { initNotificationCenter } = await import('../assets/js/notifications.js');
 
     await initNotificationCenter(user.id);
   } catch (err) {
