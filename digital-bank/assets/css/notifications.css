@@ -1,16 +1,28 @@
 /* =============================================================
    MERIDIAN — International Digital Banking
    Stylesheet: assets/css/notifications.css
-   SCOPE: The notification bell + dropdown in components/app-navbar.html.
-   Load AFTER style.css and components.css (uses tokens from style.css,
-   and reuses the .app-user-dropdown positioning pattern from components.css).
+   SCOPE: The navbar notification dropdown (every authenticated
+          page, via components/app-navbar.html) and the full
+          Notification Center page (pages/notifications.html).
+   Loaded AFTER style.css, dashboard.css and components.css — every
+   color, radius, shadow and font below reuses their tokens
+   (--ink, --paper, --ivory, --brass*, --slate*, --line, --green*,
+   --red*, --amber*, --radius-*, --shadow-*, --font-*). No new
+   tokens are introduced; only a couple of narrowly-scoped utility
+   classes for this feature.
 
-   This file was missing entirely, which is part of why the bell
-   didn't work — the dropdown had a class name but no rules, so it
-   rendered with no positioning, no hidden-by-default state, and no
-   visible list-item styling.
+   Contents:
+     1. Dropdown shell + header/footer
+     2. Notification row (shared by dropdown + page list)
+     3. Dropdown states (loading / empty / error)
+     4. Badge bump animation
+     5. Notification Center page (search, filters, groups, detail)
+     6. Responsive
    ============================================================= */
 
+/* -------------------------------------------------------------
+   1. Dropdown shell
+   ------------------------------------------------------------- */
 .notification-bell-wrap {
   position: relative;
 }
@@ -18,36 +30,63 @@
 .notification-dropdown {
   position: absolute;
   top: calc(100% + 0.6rem);
-  right: -0.5rem;
-  width: 320px;
+  right: 0;
+  width: 360px;
   max-width: calc(100vw - 2rem);
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-soft);
-  z-index: 900;
-  display: none; /* toggled to 'block' by notifications.js */
+  box-shadow: var(--shadow-card);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
+  z-index: 850;
   overflow: hidden;
+}
+
+.notification-dropdown.is-open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
 }
 
 .notification-dropdown-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.85rem 1rem;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
   border-bottom: 1px solid var(--line);
 }
 
 .notification-dropdown-head strong {
-  font-size: 0.88rem;
-  color: var(--ink);
+  font-size: 0.9rem;
 }
 
 .notification-dropdown-body {
-  max-height: 360px;
+  max-height: 380px;
   overflow-y: auto;
 }
 
+.notification-dropdown-footer {
+  display: block;
+  text-align: center;
+  padding: 0.8rem 1rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--brass-dark);
+}
+
+.notification-dropdown-footer:hover {
+  background: var(--ivory);
+}
+
+/* -------------------------------------------------------------
+   2. Notification row — shared by the dropdown list and the
+      full-page list on pages/notifications.html
+   ------------------------------------------------------------- */
 .notification-list {
   list-style: none;
   display: flex;
@@ -55,14 +94,15 @@
 }
 
 .notification-row {
-  display: flex;
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.6rem;
-  padding: 0.75rem 1rem;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--line);
   cursor: pointer;
   transition: background-color 0.15s ease;
-  border-bottom: 1px solid var(--line);
 }
 
 .notification-row:last-child {
@@ -75,93 +115,327 @@
   outline: none;
 }
 
-.notification-row-text {
+.notification-row.is-unread {
+  background: rgba(181, 138, 68, 0.06);
+}
+
+.notification-row-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--ivory);
+  color: var(--brass-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.notification-row-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.notification-row-icon--security { color: var(--red); }
+.notification-row-icon--banking,
+.notification-row-icon--savings,
+.notification-row-icon--rewards { color: var(--green); }
+.notification-row-icon--investments,
+.notification-row-icon--loans { color: var(--brass-dark); }
+
+.notification-row-body {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.1rem;
   min-width: 0;
 }
 
-.notification-row-text span:first-child {
-  font-size: 0.85rem;
-  font-weight: 600;
+.notification-row-body strong {
+  font-size: 0.86rem;
   color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.notification-row-text small {
-  font-size: 0.76rem;
+.notification-row-msg {
+  font-size: 0.8rem;
   color: var(--slate);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.notification-row-state {
-  flex-shrink: 0;
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 0.2rem 0.5rem;
-  border-radius: 999px;
-  background: var(--green-bg);
-  color: var(--green);
+.notification-row-body time {
+  font-size: 0.72rem;
+  color: var(--slate);
   margin-top: 0.1rem;
 }
 
+.notification-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--brass);
+  margin-top: 0.35rem;
+  flex-shrink: 0;
+}
+
+/* -------------------------------------------------------------
+   3. Dropdown states
+   ------------------------------------------------------------- */
 .notification-state {
   padding: 1.5rem 1rem;
+  text-align: center;
+}
+
+.notification-state--loading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  text-align: left;
 }
 
 .notification-row-skeleton {
-  height: 2.6rem;
+  height: 46px;
   border-radius: var(--radius-sm);
-  margin: 0.5rem 1rem;
 }
 
-.notification-state--empty,
-.notification-state--error {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 0.6rem;
-  padding: 2rem 1.25rem;
+.notification-state--empty p,
+.notification-state--error p {
+  font-size: 0.85rem;
   color: var(--slate);
+  margin-bottom: 0.5rem;
 }
 
 .notification-state--empty .empty-state-icon {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--ivory);
+  color: var(--brass-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 0.75rem;
 }
 
 .notification-state--empty .empty-state-icon svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
-.notification-state--error p {
+/* -------------------------------------------------------------
+   4. Badge bump — plays once when a Realtime INSERT lands
+   ------------------------------------------------------------- */
+@keyframes notification-badge-bump {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.35); }
+  60% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+
+.app-icon-btn-badge.is-bumped {
+  animation: notification-badge-bump 0.5s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-icon-btn-badge.is-bumped {
+    animation: none;
+  }
+}
+
+/* -------------------------------------------------------------
+   5. Notification Center page (pages/notifications.html)
+   ------------------------------------------------------------- */
+.notif-page-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.notif-search {
+  flex: 1;
+  min-width: 220px;
+  position: relative;
+}
+
+.notif-search svg {
+  position: absolute;
+  left: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--slate);
+  pointer-events: none;
+}
+
+.notif-search input {
+  width: 100%;
+  padding-left: 2.5rem;
+}
+
+.notif-filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.notif-category-chips {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.notif-chip {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--slate-dark);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.notif-chip:hover {
+  border-color: var(--brass);
+}
+
+.notif-chip.is-active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--ivory);
+}
+
+.notif-group-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--slate);
+  margin: 1.5rem 0 0.5rem;
+}
+
+.notif-group-label:first-child {
+  margin-top: 0;
+}
+
+.notification-list--page .notification-row {
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  margin-bottom: 0.5rem;
+  background: var(--paper);
+}
+
+.notification-list--page .notification-row.is-unread {
+  border-color: rgba(181, 138, 68, 0.35);
+}
+
+.notif-load-more {
+  display: flex;
+  justify-content: center;
+  padding: 1rem 0 0.5rem;
+}
+
+/* Detail panel — slide-out from the right, reuses .modal-overlay /
+   .modal-card patterns already defined in dashboard.css */
+.notif-detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 22, 40, 0.45);
+  z-index: 2000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.notif-detail-overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.notif-detail-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 420px;
+  max-width: calc(100vw - 2rem);
+  background: var(--paper);
+  box-shadow: var(--shadow-soft);
+  padding: 2rem;
+  overflow-y: auto;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+}
+
+.notif-detail-overlay.is-open .notif-detail-panel {
+  transform: translateX(0);
+}
+
+.notif-detail-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+  padding-top: 1.25rem;
+  border-top: 1px dashed var(--line);
+}
+
+.notif-detail-meta > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   font-size: 0.85rem;
 }
 
-.notification-dropdown-footer {
-  display: block;
-  text-align: center;
-  padding: 0.75rem 1rem;
-  border-top: 1px solid var(--line);
-  font-size: 0.82rem;
+.notif-detail-meta dt {
+  color: var(--slate);
+}
+
+.notif-detail-meta dd {
+  color: var(--ink);
   font-weight: 600;
-  color: var(--brass-dark);
 }
 
-.notification-dropdown-footer:hover {
-  text-decoration: underline;
+.notif-detail-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 1.5rem;
 }
 
+/* -------------------------------------------------------------
+   6. Responsive
+   ------------------------------------------------------------- */
 @media (max-width: 480px) {
   .notification-dropdown {
     position: fixed;
-    top: var(--app-header-h, 64px);
-    right: 0.75rem;
-    left: 0.75rem;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
     width: auto;
+    max-width: none;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    transform: translateY(16px);
+  }
+  .notification-dropdown.is-open {
+    transform: translateY(0);
+  }
+  .notif-detail-panel {
+    width: 100%;
+    max-width: none;
   }
 }
