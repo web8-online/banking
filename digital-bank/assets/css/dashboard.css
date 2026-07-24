@@ -4,25 +4,31 @@
    SCOPE: Every authenticated "app" page (dashboard, accounts,
           transactions, transfer, cards, profile, settings...).
           Loaded AFTER style.css (tokens/reset live there) and
-          AFTER components.css if that page also uses it.
+          BEFORE components.css if that page also uses it.
+
+   NOTE: Toasts, status pills, tags, amounts, skeletons and empty
+   states used to be defined here too, duplicating (and, in the
+   case of .toast/.toast-stack and .status-pill--blocked vs
+   .status-pill--danger, actively conflicting with)
+   components.css. Those blocks have been removed — components.css
+   is now their single owner. Make sure every page using this file
+   also loads components.css, or it won't get toasts/pills/
+   skeletons/empty-states styled at all.
 
    Contents:
      1.  App shell (body, anti-flash guard, overflow guard)
      2.  App header / nav / user menu
      2b. Mobile nav toggle
      3.  Page heads, quick actions & tab toggle
-     4.  Status pills & badges
-     5.  Cards (generic .profile-card shell used everywhere)
-     6.  Dashboard-specific pieces (layout grid, balance card,
+     4.  Cards (generic .profile-card shell used everywhere)
+     5.  Dashboard-specific pieces (layout grid, balance card,
          strip, tx list, spend breakdown, goals, mini card
          preview, upsell)
-     7.  Profile page (banner, sidebar nav, panels, forms, switches)
-     8.  Accounts page (grid, account-detail-card)
-     9.  Modals
-     10. Toasts
-     11. Skeleton / loading states
-     12. Responsive breakpoints
-     13. Live ticker deltas, market pulse panel, automation
+     6.  Profile page (banner, sidebar nav, panels, forms, switches)
+     7.  Accounts page (grid, account-detail-card)
+     8.  Modals
+     9.  Responsive breakpoints
+     10. Live ticker deltas, market pulse panel, automation
          showcase stat (dashboard liveliness pass)
    ============================================================= */
 
@@ -33,7 +39,7 @@ html,
 body.app-body {
   /* A horizontally-scrolling app page is always a layout bug, not
      a feature — this is a hard backstop while the rules below fix
-     the actual causes (see section 12). */
+     the actual causes (see section 9). */
   overflow-x: hidden;
 }
 
@@ -410,46 +416,7 @@ body.app-body.auth-pending {
 }
 
 /* -------------------------------------------------------------
-   4. Status pills & badges
-   ------------------------------------------------------------- */
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.76rem;
-  font-weight: 600;
-  padding: 0.32rem 0.7rem;
-  border-radius: 999px;
-  white-space: nowrap;
-}
-
-.status-pill svg {
-  width: 12px;
-  height: 12px;
-}
-
-.status-pill--verified {
-  background: var(--green-bg);
-  color: var(--green);
-}
-
-.status-pill--neutral {
-  background: rgba(10, 22, 40, 0.06);
-  color: var(--slate-dark);
-}
-
-.status-pill--pending {
-  background: var(--amber-bg);
-  color: var(--amber);
-}
-
-.status-pill--blocked {
-  background: var(--red-bg);
-  color: var(--red);
-}
-
-/* -------------------------------------------------------------
-   5. Generic card shell
+   4. Generic card shell
    ------------------------------------------------------------- */
 .profile-card {
   background: var(--paper);
@@ -485,7 +452,7 @@ body.app-body.auth-pending {
 }
 
 /* -------------------------------------------------------------
-   6. Dashboard-specific pieces
+   5. Dashboard-specific pieces
    ------------------------------------------------------------- */
 
 /* Two-column layout: main column (balance/tx/spending) + sidebar
@@ -666,18 +633,6 @@ body.app-body.auth-pending {
   color: var(--slate);
 }
 
-.amt {
-  font-family: var(--font-mono);
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--ink);
-  white-space: nowrap;
-}
-
-.amt.pos {
-  color: var(--green);
-}
-
 .tx-row time {
   font-size: 0.78rem;
   color: var(--slate);
@@ -818,7 +773,7 @@ body.app-body.auth-pending {
 }
 
 /* -------------------------------------------------------------
-   7. Profile page
+   6. Profile page
    ------------------------------------------------------------- */
 .profile-banner {
   display: flex;
@@ -1193,58 +1148,8 @@ body.app-body.auth-pending {
   font-size: 0.84rem;
 }
 
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 42px;
-  height: 24px;
-  flex-shrink: 0;
-}
-
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-  position: absolute;
-}
-
-.switch-track {
-  position: absolute;
-  inset: 0;
-  background: var(--line);
-  border-radius: 999px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.switch-track::before {
-  content: '';
-  position: absolute;
-  width: 18px;
-  height: 18px;
-  left: 3px;
-  top: 3px;
-  background: var(--paper);
-  border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(10, 22, 40, 0.3);
-  transition: transform 0.2s ease;
-}
-
-.switch input:checked + .switch-track {
-  background: var(--brass);
-}
-
-.switch input:checked + .switch-track::before {
-  transform: translateX(18px);
-}
-
-.switch input:disabled + .switch-track {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
 /* -------------------------------------------------------------
-   8. Accounts page
+   7. Accounts page
    ------------------------------------------------------------- */
 .accounts-grid {
   grid-template-columns: repeat(3, 1fr);
@@ -1382,7 +1287,7 @@ body.app-body.auth-pending {
 }
 
 /* -------------------------------------------------------------
-   9. Modals
+   8. Modals
    ------------------------------------------------------------- */
 .modal-overlay {
   position: fixed;
@@ -1508,92 +1413,7 @@ body.app-body.auth-pending {
 }
 
 /* -------------------------------------------------------------
-   10. Toasts
-   ------------------------------------------------------------- */
-.toast-stack {
-  position: fixed;
-  bottom: 1.5rem;
-  right: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  z-index: 3000;
-  max-width: 340px;
-}
-
-.toast {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  background: var(--ink);
-  color: var(--ivory);
-  padding: 0.85rem 1.1rem;
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-soft);
-  font-size: 0.85rem;
-  font-weight: 500;
-  animation: toast-in 0.25s ease;
-}
-
-.toast--error {
-  background: var(--red);
-}
-
-.toast--success .toast-ic {
-  color: var(--green);
-}
-
-.toast-ic {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-  color: var(--brass-light);
-}
-
-@keyframes toast-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* -------------------------------------------------------------
-   11. Skeleton / loading states
-   ------------------------------------------------------------- */
-.skeleton {
-  position: relative;
-  overflow: hidden;
-  background: var(--line);
-  border-radius: var(--radius-sm);
-  color: transparent !important;
-}
-
-.skeleton::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
-  animation: skeleton-sweep 1.3s ease-in-out infinite;
-}
-
-@keyframes skeleton-sweep {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(100%); }
-}
-
-.empty-state {
-  text-align: center;
-  padding: 2.5rem 1rem;
-  color: var(--slate);
-  font-size: 0.9rem;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .skeleton::after {
-    animation: none;
-  }
-}
-
-/* -------------------------------------------------------------
-   12. Responsive breakpoints
+   9. Responsive breakpoints
    ------------------------------------------------------------- */
 @media (max-width: 1180px) {
   .accounts-grid {
@@ -1772,7 +1592,7 @@ body.app-body.auth-pending {
 }
 
 /* -------------------------------------------------------------
-   13. Live ticker deltas, market pulse panel, automation
+   10. Live ticker deltas, market pulse panel, automation
        showcase stat — dashboard liveliness pass.
    ------------------------------------------------------------- */
 
@@ -1908,8 +1728,7 @@ body.app-body.auth-pending {
    .automation-node blocks (icon circle + label) connected by two
    .automation-track segments, each carrying an .automation-dot
    that travels along it to suggest money moving through the
-   pipeline. Previously unstyled — rendered as three bare icons
-   and a label stacked with no relationship between them. */
+   pipeline. */
 .automation-flow {
   display: flex;
   align-items: center;
