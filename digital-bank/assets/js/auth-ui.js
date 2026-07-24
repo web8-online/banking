@@ -12,6 +12,8 @@
      3. Populate the header's user menu (name, initials) from the
         real session instead of the hard-coded "Amara Okafor" markup.
      4. Wire up every "Log out" control so it actually signs out.
+     5. Open/close the user menu dropdown itself (.app-user-trigger →
+        .app-user-dropdown) — see wireUserMenuToggle() below.
 
    Import path to supabase/auth.js is resolved at runtime with a
    dynamic import() (see resolveSupabaseBase below) so this single
@@ -20,14 +22,14 @@
 
    Usage — add to any page, after component markup exists:
 
-     <script type="module">
-       import { initAuthUI } from './assets/js/auth-ui.js'; // or ../assets/js/... under /pages/
-       initAuthUI();
-     </script>
+     <script type="module" src="./assets/js/auth-ui.js"></script>
+     <!-- or ../assets/js/auth-ui.js under /pages/ -->
 
-   If the page also uses components.js to inject the header, call
-   initAuthUI() after `document` fires 'component:loaded' instead of
-   on DOMContentLoaded — see the bottom of this file.
+   No explicit initAuthUI() call is needed on pages using
+   components.js — the auto-init block at the bottom of this file
+   listens for 'component:loaded' itself. Just adding the <script>
+   tag is enough. (This was previously missing from dashboard.html,
+   which is why none of this ran there at all.)
    ============================================================= */
 
 import { $, $$, getInitials } from './utils.js';
@@ -88,6 +90,67 @@ function populateUserChrome(user) {
   });
   $$('[data-user-email]').forEach((el) => { el.textContent = user.email; });
   $$('[data-user-first-name]').forEach((el) => { el.textContent = firstName; });
+}
+
+/* -----------------------------------------------------------
+   User menu open/close
+   -----------------------------------------------------------
+   This was the missing piece: nothing previously toggled
+   .app-user-dropdown open or closed. Mirrors the same pattern used
+   for the notification bell and the chat widget's options menu —
+   toggle on trigger click, close on outside click or Escape, keep
+   aria-expanded in sync for screen readers.
+   ----------------------------------------------------------- */
+function wireUserMenuToggle() {
+  // There can be more than one ".app-user-menu" in the header (the
+  // notification bell wrapper also uses that class) — scope to the
+  // one that actually contains .app-user-trigger.
+  const menus = $$('.app-user-menu').filter((wrap) => $('.app-user-trigger', wrap));
+
+  menus.forEach((wrap) => {
+    const trigger = $('.app-user-trigger', wrap);
+    const dropdown = $('.app-user-dropdown', wrap);
+    if (!trigger || !dropdown) return;
+
+    const open = () => {
+      wrap.classList.add('is-open');
+      trigger.setAttribute('aria-expanded', 'true');
+      dropdown.hidden = false;
+    };
+
+    const close = () => {
+      wrap.classList.remove('is-open');
+      trigger.setAttribute('aria-expanded', 'false');
+      dropdown.hidden = true;
+    };
+
+    // Start closed regardless of markup default.
+    close();
+
+    trigger.addEventListener('click', (event) => {
+      event.stopPropagation();
+      wrap.classList.contains('is-open') ? close() : open();
+    });
+
+    document.addEventListener('click', (event) => {
+      if (wrap.classList.contains('is-open') && !wrap.contains(event.target)) {
+        close();
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && wrap.classList.contains('is-open')) {
+        close();
+        trigger.focus();
+      }
+    });
+
+    // Clicking any item inside should close the menu too (matches
+    // how the notification dropdown and chat menu behave elsewhere).
+    $$('a, button', dropdown).forEach((item) => {
+      item.addEventListener('click', () => close());
+    });
+  });
 }
 
 /* -----------------------------------------------------------
@@ -152,6 +215,7 @@ export async function initAuthUI() {
     if (!user) return;
 
     populateUserChrome(user);
+    wireUserMenuToggle();
     wireLogoutControls(signOutUser);
 
     // If the session ends elsewhere (another tab, token expiry), bounce here too.
