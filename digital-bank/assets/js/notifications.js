@@ -204,17 +204,21 @@ function setBadgeCount(badge, count) {
 function openDropdown(els) {
   els.dropdown.setAttribute('aria-hidden', 'false');
   els.toggle.setAttribute('aria-expanded', 'true');
-  els.dropdown.style.display = 'block';
+  // notifications.css shows/hides this element via the .is-open
+  // class (opacity/visibility/transform) — it has no display:none
+  // in its base rule, so toggling inline `style.display` alone has
+  // no visible effect. Toggle the class the CSS actually keys off.
+  els.dropdown.classList.add('is-open');
 }
 
 function closeDropdown(els) {
   els.dropdown.setAttribute('aria-hidden', 'true');
   els.toggle.setAttribute('aria-expanded', 'false');
-  els.dropdown.style.display = 'none';
+  els.dropdown.classList.remove('is-open');
 }
 
 function isDropdownOpen(els) {
-  return els.dropdown.getAttribute('aria-hidden') === 'false';
+  return els.dropdown.classList.contains('is-open');
 }
 
 /**
