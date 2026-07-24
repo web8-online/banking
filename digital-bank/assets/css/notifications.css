@@ -418,8 +418,23 @@
 
 /* -------------------------------------------------------------
    6. Responsive
+   -----------------------------------------------------------
+   Bell dropdown on phones: below this width the anchored
+   under-the-bell dropdown (the desktop rule up in section 1) gets
+   cramped against the sticky header with almost no breathing
+   room — 0.6rem of top offset is fine for a mouse-driven dropdown
+   next to plenty of screen, but on a phone it reads as "stuck to
+   the nav bar." Below the breakpoint we switch it to a bottom
+   sheet instead: pinned to the viewport, not the button, with its
+   own header/footer padding and a max-height so long lists scroll
+   internally instead of pushing the sheet off-screen.
+
+   Widened from 480px to 640px so this treatment kicks in for
+   phones broadly (480px was only ever catching the smallest
+   handsets — most modern phones report wider than that and were
+   falling through to the cramped desktop rule).
    ------------------------------------------------------------- */
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .notification-dropdown {
     position: fixed;
     top: auto;
@@ -428,12 +443,54 @@
     right: 0;
     width: auto;
     max-width: none;
+    max-height: min(80vh, 520px);
+    display: flex;
+    flex-direction: column;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    transform: translateY(16px);
+    border-bottom: none;
+    box-shadow: 0 -12px 32px -8px rgba(10, 22, 40, 0.35);
+    transform: translateY(100%);
   }
+
   .notification-dropdown.is-open {
     transform: translateY(0);
   }
+
+  /* A small grab-handle bar at the top of the sheet — standard
+     mobile affordance signalling "this can be dismissed", and it
+     visually separates the sheet from the header above it even
+     though there's no backdrop dimming the page behind it. */
+  .notification-dropdown::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--line);
+    margin: 0.65rem auto 0.15rem;
+    flex-shrink: 0;
+  }
+
+  .notification-dropdown-head {
+    padding: 0.75rem 1.25rem 0.85rem;
+    flex-shrink: 0;
+  }
+
+  .notification-dropdown-body {
+    flex: 1;
+    max-height: none;
+    padding-bottom: 0.25rem;
+  }
+
+  .notification-row {
+    padding: 0.95rem 1.25rem;
+  }
+
+  .notification-dropdown-footer {
+    padding: 0.9rem 1.25rem calc(0.9rem + env(safe-area-inset-bottom, 0px));
+    flex-shrink: 0;
+  }
+
   .notif-detail-panel {
     width: 100%;
     max-width: none;
