@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="../assets/js/auth-guard.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notifications — Meridian</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/dashboard.css">
+<link rel="stylesheet" href="../assets/css/components.css">
+<link rel="stylesheet" href="../assets/css/notifications.css">
+</head>
+<body class="app-body auth-pending">
+
+<a class="skip-link" href="#main-content">Skip to main content</a>
+
+<div data-component="app-navbar"></div>
+
+<main id="main-content" class="app-main">
+  <div class="container">
+
+    <div class="page-head page-head--split">
+      <div>
+        <h1>Notifications</h1>
+        <p>Everything Meridian has told you, in one place — search, filter, and manage it all here.</p>
+      </div>
+      <button type="button" class="btn btn-ghost" id="notif-mark-all">Mark all read</button>
+    </div>
+
+    <div class="notif-page-toolbar">
+      <div class="notif-search">
+        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.5"/><path d="m17 17-3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <label for="notif-search-input" class="sr-only">Search notifications</label>
+        <input type="search" id="notif-search-input" placeholder="Search notifications…">
+      </div>
+      <div class="tab-toggle" id="notif-status-tabs">
+        <button type="button" class="tab-toggle-btn is-active" data-status="all">All</button>
+        <button type="button" class="tab-toggle-btn" data-status="unread">Unread</button>
+        <button type="button" class="tab-toggle-btn" data-status="archived">Archived</button>
+      </div>
+    </div>
+
+    <div class="notif-filter-row">
+      <div class="notif-category-chips" id="notif-category-chips">
+        <button type="button" class="notif-chip is-active" data-category="all">All categories</button>
+        <!-- remaining chips injected by notifications-center.js from NOTIFICATION_CATEGORIES -->
+      </div>
+    </div>
+
+    <div id="notif-list-wrap">
+      <ul class="notification-list notification-list--page" id="notif-list" hidden></ul>
+
+      <div class="notification-state notification-state--loading" id="notif-loading">
+        <div class="notification-row-skeleton skeleton" style="height:64px;"></div>
+        <div class="notification-row-skeleton skeleton" style="height:64px;"></div>
+        <div class="notification-row-skeleton skeleton" style="height:64px;"></div>
+      </div>
+
+      <div class="empty-state" id="notif-empty" hidden>
+        <span class="empty-state-icon">
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 8a5 5 0 0 1 10 0c0 4 1.5 5 1.5 5h-13S5 12 5 8Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+        </span>
+        <h3>Nothing here</h3>
+        <p>No notifications match your current search and filters.</p>
+      </div>
+
+      <div class="empty-state" id="notif-error" hidden>
+        <span class="empty-state-icon">
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </span>
+        <h3>Couldn't load notifications</h3>
+        <p>Something went wrong on our end.</p>
+        <button type="button" class="btn btn-ghost" id="notif-retry">Try again</button>
+      </div>
+
+      <div class="notif-load-more" id="notif-load-more" hidden>
+        <button type="button" class="btn btn-ghost" id="notif-load-more-btn">Load more</button>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- =========================================================
+     NOTIFICATION DETAIL PANEL
+     ========================================================= -->
+<div class="notif-detail-overlay" id="notif-detail-overlay" aria-hidden="true">
+  <section class="notif-detail-panel" role="dialog" aria-modal="true" aria-labelledby="notif-detail-title">
+    <div class="modal-head">
+      <div>
+        <span class="tag" id="notif-detail-category">Category</span>
+        <h3 id="notif-detail-title" style="margin-top:0.6rem;">Notification title</h3>
+      </div>
+      <button type="button" class="modal-close" id="notif-detail-close" aria-label="Close">
+        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 2l12 12M14 2 2 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <p id="notif-detail-message"></p>
+
+    <dl class="notif-detail-meta">
+      <div><dt>Date &amp; time</dt><dd id="notif-detail-date"></dd></div>
+      <div><dt>Status</dt><dd id="notif-detail-status"></dd></div>
+      <div id="notif-detail-account-row" hidden><dt>Related account</dt><dd id="notif-detail-account"></dd></div>
+      <div id="notif-detail-tx-row" hidden><dt>Transaction reference</dt><dd id="notif-detail-tx"></dd></div>
+    </dl>
+
+    <div class="notif-detail-actions">
+      <a href="#" class="btn btn-primary btn-block" id="notif-detail-action" hidden>View details</a>
+      <button type="button" class="btn btn-ghost btn-block" id="notif-detail-archive">Archive</button>
+      <button type="button" class="btn btn-ghost btn-block" id="notif-detail-delete" style="color:var(--red);">Delete</button>
+    </div>
+  </section>
+</div>
+
+<div class="toast-stack" id="toast-stack" aria-live="polite"></div>
+
+<script type="module">
+  import { loadComponents } from '../components/components.js';
+  loadComponents();
+</script>
+<script src="../assets/js/main.js"></script>
+<script type="module" src="../assets/js/notifications-center.js"></script>
+</body>
+</html>
