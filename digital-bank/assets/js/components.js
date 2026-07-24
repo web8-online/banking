@@ -21,13 +21,9 @@
    a `component:loaded` event so other modules (auth-ui.js) can hook
    in once the real DOM exists.
 
-   FIX: this module previously never actually booted the
-   notification bell — the comment block in app-navbar.html claimed
-   loadComponents() did this automatically, but no code here called
-   initNotificationCenter(). Section 3 below (bootNotificationCenter)
-   is the piece that was missing: once app-navbar has been injected,
-   it looks up the signed-in user via supabase/auth.js and wires the
-   bell up for real.
+   Once app-navbar has been injected, bootNotificationCenter() below
+   looks up the signed-in user via supabase/auth.js and wires the
+   bell up for real — no page-specific script needed.
    ============================================================= */
 
 /* -----------------------------------------------------------
@@ -135,10 +131,6 @@ async function bootNotificationCenter(loadedNames) {
       return;
     }
 
-    // main.js resolves this the same way pages already load other
-    // assets/js modules, so this path matches the rest of the app
-    // (assets/js/*.js from the project root, or ../assets/js/*.js
-    // from under /pages/).
     const inPagesDir = window.location.pathname.includes('/pages/');
     const notificationsPath = inPagesDir ? '../assets/js/notifications.js' : 'assets/js/notifications.js';
     const { initNotificationCenter } = await import(notificationsPath);
